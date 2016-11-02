@@ -20,24 +20,22 @@ if [ $# -lt 2 ]
     exit -1
 fi
 
-
 echo $FILE_NAME, $CROPTYPE
 echo "normalize..."
 normalize $FILE_NAME
 
 echo "crophdf..."
-# TODO: should be ${TXRM_TOMO}_norm.hdf5 but normalize could not generate the name properly
-norm_name=${FILE_NAME%.*}
-NORM_FILE_NAME=`ls ${norm_name}_norm.hdf5`
-mv $NORM_FILE_NAME ${FILE_NAME%.*}_norm.hdf5
-NORM_FILE_NAME=${FILE_NAME%.*}_norm.hdf5
+NORM_FILE_NAME=${i%.*}_norm.hdf5
+# TODO to not override norm file
+CROP_FILE_NAME=${i%.*}_norm_crop.hdf5
+cp $NORM_FILE_NAME $CROP_FILE_NAME
 
 if [ $CROPTYPE -eq 1 ]
 then
     echo "CROP [0 0 1 0]"
-    crophdf -n ${FILE_NAME%.*}_norm_crop.hdf5 $NORM_FILE_NAME -r 0 0 1 0
+    crophdf $CROP_FILE_NAME -r 0 0 1 0 -s TomoNormalized
 else
     echo "CROP [26 24 21 20]"
-    crophdf -n ${FILE_NAME%.*}_norm_crop.hdf5 $NORM_FILE_NAME -r 26 24 21 20
+    crophdf $CROP_FILE_NAME -r 26 24 21 20 -s TomoNormalized
 fi
 
