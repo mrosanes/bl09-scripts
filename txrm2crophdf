@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+
+# parameters
+TXRM_TOMO=$1
+TXRM_FF=$2
+CROPTYPE=$3
+
+if [ "$1" == "-h" ] ; then
+    echo "txrm2crophdf needs three arguments:"
+    echo '- a TXRM tomo file'
+    echo '- a TXRM FF file'
+    echo '- a Int value to specify with kind of crop:'
+    echo '      "1" to apply [0 0 1 0] roi'
+    echo '      "2" to apply [26 24 21 20] roi'
+    exit 0
+fi
+
+if [ $# -lt 3 ]
+  then
+    echo "Not enough arguments supplied"
+    echo "Execute txrm2crophdf -h to show the help "
+    exit -1
+fi
+
+
+echo $TXRM_TOMO, $TXRM_FF, $CROPTYPE
+# get filename without extension
+FILE_NAME=$(basename "$TXRM_TOMO")
+FILE_NAME="${FILE_NAME%.*}"
+# txrm2nexus
+echo "txrm2nexus..."
+txrm2nexus $TXRM_TOMO $TXRM_FF -o=sb
+echo "normalize..."
+normalize $FILE_NAME.hdf5
+echo "crophdf..."
+ # TODO: should be ${TXRM_TOMO}_norm.hdf5 but normalize could not generate the name properly
+norm_name=${FILE_NAME%.*}
+NORM_FILE_NAME=`ls ${norm_name}_norm.hdf5`
+mv $NORM_FILE_NAME ${FILE_NAME%.*}_norm.hdf5
+NORM_FILE_NAME=${FILE_NAME%.*}_norm.hdf5
+
+if [ $CROPTYPE -eq 1 ]
+then
+    echo "CROP [0 0 1 0]"
+    crophdf -n ${FILE_NAME}_norm_crop.hdf5 $NORM_FILE_NAME -r 0 0 1 0
+else
+    echo "CROP [26 24 21 20]"
+    crophdf -n ${FILE_NAME}_norm_crop.hdf5 $NORM_FILE_NAME -r 26 24 21 20
+fi

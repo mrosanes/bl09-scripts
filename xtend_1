@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+
+if [ "$1" == "-h" ] ; then
+    echo "xtend_1 needs two arguments:"
+    echo '- ManyTomos output dir'
+    echo '- Output dir'
+    exit 0
+fi
+
+if [ $# -lt 2 ]
+  then
+    echo "Not enough arguments supplied"
+    echo "Execute xtend_1 -h to show the help "
+    exit -1
+fi
+
+# Load xmipp variables
+source /homelocal/sicilia/xmipp/.xmipp.bashrc
+
+ManyTomosOutputDir=$1
+Xrm2NexusOutputDir=$2
+
+
+#######
+
+xrm2nexus $ManyTomosOutputDir --output-dir-name $Xrm2NexusOutputDir
+
+root_path=`pwd`
+
+for i in $( ls $Xrm2NexusOutputDir/*/*.hdf5 ); do
+    cd `dirname $i`    
+    #TODO crop image needs metadata
+    #hdf52crophdf $i 1
+    hdf5_name=${i%.*}
+    norm_name=${hdf5_name%.*}
+    normalize $i
+    NORM_FILE_NAME=`ls ${norm_name}_norm.hdf5`
+    mv $NORM_FILE_NAME ${i%.*}_norm.hdf5
+    
+    xmipp_transform_window -i  ${i%.*}_norm.hdf5 -o ${i%.*}_norm_crop.mrc --corners 14 13 1003 1002 --physical
+    #TODO crop image needs metadata
+    #xmipp_image_convert -i ${i%.*}_norm_crop.hdf5 -o ${i%.*}_norm_crop.mrc
+done
+
+cd $root_path
+
+for i in $( ls -d $Xrm2NexusOutputDir/* ); do
+    cd $i  
+    mrc_array=($(ls *_norm_crop.mrc))
+    
+    /usr/bin/java -cp /homelocal/opbl09/Fiji.app/ImageJ-linux64:/homelocal/opbl09/Fiji.app/plugins/TomoJ_2.32-jar-with-dependencies.jar:/homelocal/opbl09/Fiji.app/plugins/TomoJ/Eftem_TomoJ_1.03.jar eftemtomoj.EFTEM_TomoJ -tsSignal ${i}/${mrc_array[1]} 1 1 -tsBg ${i}/${mrc_array[0]} 2 1 -align NMI 0
+    echo "###################  aligned 1 to 2   ###################"
+    /usr/bin/java -cp /homelocal/opbl09/Fiji.app/ImageJ-linux64:/homelocal/opbl09/Fiji.app/plugins/TomoJ_2.32-jar-with-dependencies.jar:/homelocal/opbl09/Fiji.app/plugins/TomoJ/Eftem_TomoJ_1.03.jar eftemtomoj.EFTEM_TomoJ -tsSignal ${i}/${mrc_array[1]} 1 1 -tsBg ${i}/${mrc_array[2]} 2 1 -align NMI 0
+    echo "###################  aligned 3 to 2   ###################"        
+
+#    if ( -e ${WORKING_DIRECTORY}/${rootname}4_norm_crop.mrc ) then #IF 4 FOCI is present the next line will be executed
+#       /usr/bin/java -cp /homelocal/opbl09/Fiji.app/ImageJ-linux64:/homelocal/opbl09/Fiji.app/plugins/TomoJ_2.32-jar-with-dependencies.jar:/homelocal/opbl09/Fiji.app/plugins/TomoJ/Eftem_TomoJ_1.03.jar eftemtomoj.EFTEM_TomoJ -tsSignal ${i}/${mrc_array[1]} 1 1 -tsBg ${i}/${mrc_array[3]} 2 1 -align NMI 0
+#       echo "###################  aligned 4 to 2   ###################"     
+#    endif 
+done
+
+cd $root_path
+
