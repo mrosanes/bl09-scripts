@@ -30,19 +30,6 @@ FILE_NAME="${FILE_NAME%.*}"
 # txrm2nexus
 echo "txrm2nexus..."
 txrm2nexus $TXRM_TOMO $TXRM_FF -o=sb
-echo "normalize..."
-normalize $FILE_NAME.hdf5
-echo "crophdf..."
-NORM_FILE_NAME=${i%.*}_norm.hdf5
-# TODO to not override norm file
-CROP_FILE_NAME=${i%.*}_norm_crop.hdf5
-cp $NORM_FILE_NAME $CROP_FILE_NAME
+echo "nexus2crophdf..."
+hdf52crophdf $FILE_NAME.hdf5 $CROPTYPE
 
-if [ $CROPTYPE -eq 1 ]
-then
-    echo "CROP [0 0 1 0]"
-    crophdf $CROP_FILE_NAME -r 0 0 1 0 -s TomoNormalized
-else
-    echo "CROP [26 24 21 20]"
-    crophdf $CROP_FILE_NAME -r 26 24 21 20 -s TomoNormalized
-fi
