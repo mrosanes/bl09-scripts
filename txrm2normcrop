@@ -6,7 +6,7 @@ TXRM_FF=$2
 CROPTYPE=$3
 
 if [ "$1" == "-h" ] ; then
-    echo "txrm2crophdf needs three arguments:"
+    echo "txrm2normcrop needs three arguments:"
     echo '- a TXRM tomo file'
     echo '- a TXRM FF file'
     echo '- a Int value to specify with kind of crop:'
@@ -18,7 +18,7 @@ fi
 if [ $# -lt 3 ]
   then
     echo "Not enough arguments supplied"
-    echo "Execute txrm2crophdf -h to show the help "
+    echo "Execute txrm2normcrop -h to show the help "
     exit -1
 fi
 
@@ -30,6 +30,6 @@ FILE_NAME="${FILE_NAME%.*}"
 # txrm2nexus
 echo "txrm2nexus..."
 txrm2nexus $TXRM_TOMO $TXRM_FF -o=sb
-echo "nexus2crophdf..."
-hdf52crophdf $FILE_NAME.hdf5 $CROPTYPE
+echo "hdf2normcrop..."
+hdf2normcrop $FILE_NAME.hdf5 $CROPTYPE
 
