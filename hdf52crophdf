@@ -26,9 +26,8 @@ normalize $FILE_NAME
 
 echo "crophdf..."
 NORM_FILE_NAME=${FILE_NAME%.*}_norm.hdf5
-# TODO to not override norm file
 CROP_FILE_NAME=${FILE_NAME%.*}_norm_crop.hdf5
-cp $NORM_FILE_NAME $CROP_FILE_NAME
+mv $NORM_FILE_NAME $CROP_FILE_NAME
 
 if [ $CROPTYPE -eq 1 ]
 then
