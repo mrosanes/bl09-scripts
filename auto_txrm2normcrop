@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+
+if [ "$1" == "-h" ] ; then
+    echo "auto_txrm2normcrop needs one argument:"
+    echo '- Input dir'
+    echo '- a Int value to specify with kind of crop:'
+    echo '      "1" to apply [0 0 1 0] roi'
+    echo '      "2" to apply [26 24 21 20] roi'
+    exit 0
+fi
+
+if [ $# -lt 2 ]
+  then
+    echo "Not enough arguments supplied"
+    echo "Execute auto_txrm2normcrop -h to show the help "
+    exit -1
+fi
+
+inputdir=$1
+crop=$2
+
+# Find all FF in the inputdir
+for txrm in $( find $inputdir -name "*_FF.txrm" ); do
+    cd `dirname $txrm`
+    # Get the ff filename
+    ff="${txrm##*/}"
+    # Get the sample filename
+    sample=${ff%_FF.txrm}.txrm
+    # Skip if sample does not exist
+    if [ ! -f $sample ]; then
+        echo "Sample, $sample, not found!"
+        continue
+    fi
+    # Call to txrm2normcrop
+    txrm2normcrop $sample $ff $crop
+done
