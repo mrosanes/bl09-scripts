@@ -1,0 +1,18 @@
+#!/usr/bin/python
+
+import sys
+import h5py
+
+out_file_name = "angles.tlt"
+if len(sys.argv) != 2:
+    print "Usage: extract_angle <normalized tomo hdf5 file>"
+    sys.exit(1)
+
+in_file_name = sys.argv[1]
+rotation_angles = None
+with h5py.File(in_file_name) as in_file:
+    rotation_angles = in_file["TomoNormalized"]["rotation_angle"].value
+
+with open(out_file_name, "w") as out_file:
+    for angle in rotation_angles:
+        out_file.write("%.2f\n" % angle)
