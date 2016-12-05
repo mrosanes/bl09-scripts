@@ -1,0 +1,32 @@
+#!/bin/bash
+
+# Execute and print the sequence
+echoExec()
+{
+ COMMAND="$@"
+ echo '-->' $COMMAND
+ eval $COMMAND
+}
+
+fnames=(`ls -d $1`)
+outname=$2
+nt=${#fnames[@]}
+
+echo "Number of Folders: $nt"
+
+counter=0
+while [ $counter -lt $nt ]; do
+    tomo=${fnames[$counter]}
+    echoExec "cd $tomo"
+    
+    basename="$tomo"
+
+        echo $basename
+
+#        echoExec "fussion_addition \"*.tif\" ${basename}_FS.mrc"
+        echoExec "matlab -nodisplay -r \"tomo_deconv_wiener(25,520,20161201,'${basename}_FS.mrc', 10,0.02,20);tomo_deconv_wiener(25,520,20161201,'${basename}_FS.mrc', 10,0.03,20);exit\""
+        
+      
+    cd ..
+    let counter=counter+1
+done
