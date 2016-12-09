@@ -1,0 +1,104 @@
+#!/usr/bin/python
+
+
+"""
+(C) Copyright 2016 Marc Rosanes - Joaquin Oton
+The program is distributed under the terms of the 
+GNU General Public License (or the Lesser GPL).
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
+
+import nxs
+import sys
+import argparse
+import struct
+import numpy as np
+#import matplotlib.pyplot as plt
+
+def readMRC(inputfile):
+    """Read a 3D map from a little-endian .mrc file"""
+    #TODO: store angles in .tlt file
+
+    #Note: If this script is giving problems, maybe it is because data had
+    # to be unpacked using big-endian instead of little endian.
+
+    #Note: Script created to unpack .mrc files containing floats. It could be 
+    # extended if we want to deal with .mrc files containing other data formats.
+
+    #Info: MRC file format: http://bio3d.colorado.edu/imod/doc/mrc_format.txt
+    #HEADER of MRC file is 1024 bytes.
+
+    tomonorm = nxs.NXentry(name= "TomoNormalized")
+    outputfilehdf5 = inputfile.rsplit('.', 1)[0] + '_norm.hdf5'
+    tomonorm.save(outputfilehdf5, 'w5')
+
+    # We try for little-endian data
+    f = open(inputfile, 'rb')
+    if f<0:
+        print("mrc file could not be opened: " + inputfile)
+    # Get the first 10 values, which are integers:
+    # nc nr ns mode ncstart nrstart nsstart nx ny nz
+    # nc: number of columns
+    # nr: number of rows
+    # ns: number of slices
+    # mode: format of image.
+    fa = f.read(40)
+    data_header = struct.unpack('<10I', fa)
+    numcols = data_header[0]
+    numrows = data_header[1]
+    numslices = data_header[2]
+    mode = data_header[3] #The mode is the format of data present in the mrc.
+
+    tomonorm['TomoNormalized'] = nxs.NXfield(
+                    name='TomoNormalized', dtype='float32' , 
+                    shape=[nxs.UNLIMITED, numrows, numcols])
+
+
+    tomonorm['TomoNormalized'].attrs['Number of Frames'] = numslices
+    tomonorm['TomoNormalized'].attrs['Number of Rows'] = numrows
+    tomonorm['TomoNormalized'].attrs['Number of Columns'] = numcols
+    tomonorm['TomoNormalized'].write()
+
+    # rest_header = 1024 - 40
+    # The rest of the header does not interest us.
+    rest_header_len = 984
+    rest_header = f.read(984)  
+
+    single_img_size = numcols*numrows
+    image_bytes_len = 4*numcols*numrows
+    for numimg in range (0, numslices):
+        pixels_bytes = f.read(image_bytes_len)
+        format = '<' + str(single_img_size) + 'f'
+        data_img =  struct.unpack(format, pixels_bytes)
+        img_slice = np.reshape(data_img, (1, numrows, numcols))
+        slab_offset = [numimg, 0, 0]
+        tomonorm['TomoNormalized'].put(img_slice, slab_offset, refresh=False)
+        tomonorm['TomoNormalized'].write()
+          
+    f.close()
+
+
+if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser(description="Convert from mrc to hdf5")
+
+    parser.add_argument('inputmrc', type=str, default=None,
+           help='Enter mrc file containing images with float values.')
+
+    args = parser.parse_args()
+
+    readMRC(args.inputmrc)
+
+
