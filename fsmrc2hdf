@@ -21,13 +21,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 import nxs
-import sys
 import argparse
 import struct
 import numpy as np
-#import matplotlib.pyplot as plt
 
-def readMRC(inputfile):
+def readMRC(inputfile, treehdf):
     """Read a 3D map from a little-endian .mrc file"""
     #TODO: store angles in .tlt file
 
@@ -40,7 +38,8 @@ def readMRC(inputfile):
     #Info: MRC file format: http://bio3d.colorado.edu/imod/doc/mrc_format.txt
     #HEADER of MRC file is 1024 bytes.
 
-    tomonorm = nxs.NXentry(name= "TomoNormalized")
+    treehdf_parsed = treehdf.split("/") 
+    tomonorm = nxs.NXentry(name= treehdf_parsed[0])
     outputfilehdf5 = inputfile.rsplit('.', 1)[0] + '_norm.hdf5'
     tomonorm.save(outputfilehdf5, 'w5')
 
@@ -61,15 +60,14 @@ def readMRC(inputfile):
     numslices = data_header[2]
     mode = data_header[3] #The mode is the format of data present in the mrc.
 
-    tomonorm['TomoNormalized'] = nxs.NXfield(
-                    name='TomoNormalized', dtype='float32' , 
+
+    tomonorm[treehdf_parsed[1]] = nxs.NXfield(
+                    name=treehdf_parsed[1], dtype='float32' , 
                     shape=[nxs.UNLIMITED, numrows, numcols])
-
-
-    tomonorm['TomoNormalized'].attrs['Number of Frames'] = numslices
-    tomonorm['TomoNormalized'].attrs['Number of Rows'] = numrows
-    tomonorm['TomoNormalized'].attrs['Number of Columns'] = numcols
-    tomonorm['TomoNormalized'].write()
+    tomonorm[treehdf_parsed[1]].attrs['Number of Frames'] = numslices
+    tomonorm[treehdf_parsed[1]].attrs['Number of Rows'] = numrows
+    tomonorm[treehdf_parsed[1]].attrs['Number of Columns'] = numcols
+    tomonorm[treehdf_parsed[1]].write()
 
     # rest_header = 1024 - 40
     # The rest of the header does not interest us.
@@ -90,8 +88,8 @@ def readMRC(inputfile):
         data_img =  struct.unpack(format, pixels_bytes)
         img_slice = np.reshape(data_img, (1, numrows, numcols))
         slab_offset = [numimg, 0, 0]
-        tomonorm['TomoNormalized'].put(img_slice, slab_offset, refresh=False)
-        tomonorm['TomoNormalized'].write()
+        tomonorm[treehdf_parsed[1]].put(img_slice, slab_offset, refresh=False)
+        tomonorm[treehdf_parsed[1]].write()
       
     f.close()
 
@@ -102,9 +100,14 @@ if __name__ == "__main__":
 
     parser.add_argument('inputmrc', type=str, default=None,
            help='Enter mrc file containing images with float values.')
+    parser.add_argument('-t', '--treehdf', type=str, 
+           default="TomoNormalized/TomoNormalized", 
+           help='Indicate tree of hdf5 file (It only accepts two ' +
+                'levels tree). \n' +
+                '(Parsing is done using a slash)')
 
     args = parser.parse_args()
 
-    readMRC(args.inputmrc)
+    readMRC(args.inputmrc, args.treehdf)
 
 
