@@ -8,7 +8,7 @@ echoExec()
  eval $COMMAND
 }
 
-fnames=(`ls -d $1`)
+fnames=(`ls -d $1/*/`)
 outname=$2
 nt=${#fnames[@]}
 
@@ -20,11 +20,8 @@ while [ $counter -lt $nt ]; do
     echoExec "cd $tomo"
     
     basename="$tomo"
-
-        echo $basename
-
-#        echoExec "fussion_addition \"*.tif\" ${basename}_FS.mrc"
-        echoExec "matlab -nodisplay -r \"tomo_deconv_wiener(25,520,20161201,'${basename}_FS.mrc', 10,0.02,20);tomo_deconv_wiener(25,520,20161201,'${basename}_FS.mrc', 10,0.03,20);exit\""
+    #echo $basename
+    echoExec "matlab -nodisplay -r \"tomo_deconv_wiener(25,520,20161201,'${basename}_FS.mrc', 10,0.02,20);tomo_deconv_wiener(25,520,20161201,'${basename}_FS.mrc', 10,0.03,20);exit\""
         
       
     cd ..
