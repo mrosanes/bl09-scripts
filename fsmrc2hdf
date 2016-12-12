@@ -78,7 +78,13 @@ def readMRC(inputfile):
 
     single_img_size = numcols*numrows
     image_bytes_len = 4*numcols*numrows
-    for numimg in range (0, numslices):
+
+    count = 0
+    images_step = 20
+    for numimg in range(numslices):
+        count = count + 1
+        if count%images_step == 0:
+            print(str(count) + " images converted")
         pixels_bytes = f.read(image_bytes_len)
         format = '<' + str(single_img_size) + 'f'
         data_img =  struct.unpack(format, pixels_bytes)
@@ -86,7 +92,7 @@ def readMRC(inputfile):
         slab_offset = [numimg, 0, 0]
         tomonorm['TomoNormalized'].put(img_slice, slab_offset, refresh=False)
         tomonorm['TomoNormalized'].write()
-          
+      
     f.close()
 
 
