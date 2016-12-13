@@ -1,0 +1,52 @@
+#!/bin/bash
+
+
+# Rename all files in a folder:
+# for FILENAME in *; do mv $FILENAME Unix_$FILENAME; done 
+
+
+numimg=$1
+srcpath=$2
+hdfoutdir=$3
+
+COUNTER=0
+while [ $COUNTER -lt $numimg ]; do
+
+    destdir=tomoout_$COUNTER
+    echo $destdir
+    mkdir $destdir
+
+    echo "Copying xrm files to independent folder according the number of image"
+    for i in $( ls $srcpath/*_$COUNTER.xrm ); do
+        #echo $i
+        cp -p $i $destdir
+    done
+    
+    echo "Copying FF files in the same folder"
+    for i in $( ls $srcpath/*_FF_* ); do
+        #echo $i
+        cp -p $i $destdir
+    done
+
+    echo "xrm2nexus conversion"
+    xrm2nexus $destdir --output-dir-name $hdfoutdir
+
+    let COUNTER=COUNTER+1
+done
+
+
+echo "Normalizing tomographies"
+mkdir -p $hdfoutdir/normalizedfiles
+for hdfrawfile in $( ls $hdfoutdir/*/*.hdf5 ); do
+    echo $hdfrawfile
+    normalize $hdfrawfile
+    mv $hdfoutdir/*/*_norm.hdf5 $hdfoutdir/normalizedfiles
+done
+
+
+
+
+echo "The fusion has still to be applied"
+
+
+
