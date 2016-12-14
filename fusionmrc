@@ -1,0 +1,31 @@
+#!/bin/bash
+
+srcpath=$1
+
+mrc_array=($srcpath/*)
+reference=${mrc_array[0]}
+array=${mrc_array[@]/$reference}
+
+
+echo ${mrc_array[@]}
+echo ${reference[@]}
+echo ${array[@]}
+
+num_mrcs=${#mrc_array[@]}
+echo $num_mrcs
+
+basename=${reference%_norm.mrc}
+outname=${basename}_AVG_norm.mrc
+
+for mrcfile in ${array[@]}; do
+    if [ ! -f ${outname} ]; then
+        eval "scipion xmipp_image_operate ${reference} --plus $mrcfile -o ${outname}"
+    else
+        eval "scipion xmipp_image_operate ${outname} --plus ${mrcfile}"
+    fi
+done
+eval "scipion xmipp_image_operate ${outname} --divide $num_mrcs"
+
+
+
+
