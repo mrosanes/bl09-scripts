@@ -39,9 +39,9 @@ def readMRC(inputfile, treehdf):
     #HEADER of MRC file is 1024 bytes.
 
     treehdf_parsed = treehdf.split("/") 
-    tomonorm = nxs.NXentry(name= treehdf_parsed[0])
-    outputfilehdf5 = inputfile.rsplit('.', 1)[0] + '_norm.hdf5'
-    tomonorm.save(outputfilehdf5, 'w5')
+    tomo = nxs.NXentry(name= treehdf_parsed[0])
+    outputfilehdf5 = inputfile.rsplit('.', 1)[0] + '.hdf5'
+    tomo.save(outputfilehdf5, 'w5')
 
     # We try for little-endian data
     f = open(inputfile, 'rb')
@@ -61,13 +61,13 @@ def readMRC(inputfile, treehdf):
     mode = data_header[3] #The mode is the format of data present in the mrc.
 
 
-    tomonorm[treehdf_parsed[1]] = nxs.NXfield(
+    tomo[treehdf_parsed[1]] = nxs.NXfield(
                     name=treehdf_parsed[1], dtype='float32' , 
                     shape=[nxs.UNLIMITED, numrows, numcols])
-    tomonorm[treehdf_parsed[1]].attrs['Number of Frames'] = numslices
-    tomonorm[treehdf_parsed[1]].attrs['Number of Rows'] = numrows
-    tomonorm[treehdf_parsed[1]].attrs['Number of Columns'] = numcols
-    tomonorm[treehdf_parsed[1]].write()
+    tomo[treehdf_parsed[1]].attrs['Number of Frames'] = numslices
+    tomo[treehdf_parsed[1]].attrs['Number of Rows'] = numrows
+    tomo[treehdf_parsed[1]].attrs['Number of Columns'] = numcols
+    tomo[treehdf_parsed[1]].write()
 
     # rest_header = 1024 - 40
     # The rest of the header does not interest us.
@@ -88,8 +88,8 @@ def readMRC(inputfile, treehdf):
         data_img =  struct.unpack(format, pixels_bytes)
         img_slice = np.reshape(data_img, (1, numrows, numcols))
         slab_offset = [numimg, 0, 0]
-        tomonorm[treehdf_parsed[1]].put(img_slice, slab_offset, refresh=False)
-        tomonorm[treehdf_parsed[1]].write()
+        tomo[treehdf_parsed[1]].put(img_slice, slab_offset, refresh=False)
+        tomo[treehdf_parsed[1]].write()
       
     f.close()
 
