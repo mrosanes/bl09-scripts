@@ -2,7 +2,7 @@
 
 import h5py
 import pickle
-
+import argparse
 
 class Dict2Hdf:
 
@@ -65,12 +65,18 @@ class Dict2Hdf:
 
 
 if __name__ == "__main__":
+
+
+    parser = argparse.ArgumentParser(description="Convert a python " +
+                                                 " dictionary into a hdf5 file")
+    parser.add_argument('-p', '--pickledict', type=str, 
+                        default="psf_library_Mistral.p",
+           help='Enter pickled python dictionary to be stored in hdf5 file')
+
+    args = parser.parse_args()
     dict2hdf_obj = Dict2Hdf()
-    psf_dict = pickle.load(open("psf_library_Mistral.p", "rb"))
+    psf_dict = pickle.load(open(args.pickledict, "rb"))
     dict2hdf_obj.dict2hdf5(psf_dict)
-
-
-
 
 
 
