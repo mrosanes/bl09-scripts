@@ -9,6 +9,9 @@ echoExec()
 }
 
 fnames=(`ls -d $1/*/`)
+
+echo $fnames
+
 outname=$2
 nt=${#fnames[@]}
 
@@ -18,12 +21,12 @@ counter=0
 while [ $counter -lt $nt ]; do
     tomo=${fnames[$counter]}
     echoExec "cd $tomo"
-    
-    basename="$tomo"
-    #echo $basename
-    echoExec "matlab -nodisplay -r \"tomo_deconv_wiener(25,520,20161201,'${basename}_FS.mrc', 10,0.02,20);tomo_deconv_wiener(25,520,20161201,'${basename}_FS.mrc', 10,0.03,20);exit\""
-        
-      
+    fusion_file=$(find -name '*_FS.mrc')
+    echo $fusion_file
+    basename="${fusion_file}" #/${tomo}_FS.mrc"
+    echo $basename
+    echoExec "matlab -nodisplay -r \"tomo_deconv_wiener(25,520,20161201,'${basename}', 10,0.02,20);tomo_deconv_wiener(25,520,20161201,'${basename}', 10,0.03,20);exit\""
+
     cd ..
     let counter=counter+1
 done
