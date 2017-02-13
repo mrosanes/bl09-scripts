@@ -7,7 +7,7 @@ import h5py
 
 
 if len(sys.argv) != 3:
-    print "Usage: extract_current <hdf5's directory>"
+    print "Usage: extract_current <hdf5's directory> <output txt file>"
     sys.exit(1)
 
 path = sys.argv[1]
@@ -20,13 +20,11 @@ filenames = next(os.walk(path))[2]
 for in_file_name in filenames:
     if ".hdf5" in in_file_name:
         total_file_name = path + '/' + in_file_name
-        print(total_file_name)
         with h5py.File(total_file_name) as in_file:
             current = in_file["NXtomo"]["instrument"]["sample"]["current"].value
 
         with open(out_file_name, "a") as out_file:
             out_file.write("%s\n" % in_file_name)
             out_file.write("%.2f\n\n" % current)
-
 
 
