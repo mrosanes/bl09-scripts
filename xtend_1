@@ -34,6 +34,7 @@ for i in $( ls $Xrm2NexusOutputDir/*/*.hdf5 ); do
     cd `dirname $i` 
     hdf2normcrop $i $CROPTYPE   
     CROP_FILE_NAME=${i%.*}_norm_crop.hdf5
+    extract_angle $CROP_FILE_NAME
     xmipp_image_convert -i $CROP_FILE_NAME -o ${i%.*}_norm_crop.mrc
 done
 
