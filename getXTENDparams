@@ -1,0 +1,60 @@
+#!/usr/bin/env python
+
+import sys
+
+import numpy as np
+
+
+def main():
+    #    print 'Number of arguments:', len(sys.argv), 'arguments.'
+    #    print 'Argument List:', str(sys.argv)
+
+    dof = float(sys.argv[1])
+    fov = float(sys.argv[2])
+    thickness = float(sys.argv[3])
+    angleMax = float(sys.argv[4])
+    angleStep = float(sys.argv[5]) if len(sys.argv) > 5 else 1
+
+    xtendParams(dof, fov, thickness, angleMax, angleStep)
+
+
+def xtendParams(dof, fov, thickness, angleMax, angleStep):
+    angs = np.arange(0, angleMax + 1, angleStep)
+    angsRad = np.radians(angs)
+    theta0 = np.arcsin(thickness / float(fov))
+    angsTot = angsRad + theta0
+    angsTot[angsTot > np.pi / 2] = np.pi / 2  # We keep in focus the region given by cylinder and rectangle
+    Tz = fov * np.sin(angsTot)
+
+    nProj = np.ceil(1e-5 + Tz / dof)
+    nProjT = nProj.sum() * 2 - 1
+    zsteps = 2 * Tz / nProj
+    zsteps[nProj == 1] = 0
+    zsteps = np.round(zsteps * 10) / 10
+
+    # nPos = np.flatnonzero(np.diff(nProj)) + 1
+    # nPos = np.append(np.insert(nPos, 0, 0), nProj.size)
+    # nRanges = nPos.size - 1
+
+    nPos = np.flatnonzero(np.diff(zsteps)) + 1
+    nPos = np.append(np.insert(nPos, 0, 0), zsteps.size)
+    nRanges = nPos.size - 1
+
+    for k in np.arange(nRanges):
+        if np.diff(nPos[k:k + 2]) == 1:
+            message = 'Angles: %04.1f     ;' % angs[nPos[k]]
+        else:
+            message = 'Angles: %04.1f-%04.1f;' % tuple(angs[nPos[k:k + 2] - [0, 1]])
+
+        print message + ' N projs: %i; z-step: %3.1f' % (nProj[nPos[k]], zsteps[nPos[k]])
+
+
+
+
+        #   print 'N projs: ', nProj
+        #   print 'z-steps: ',zsteps
+    print 'Total projections: ', nProjT
+
+
+if __name__ == "__main__":
+    main()
