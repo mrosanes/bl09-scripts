@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+
+
+# User Input: 
+ManyTomosOutputDir=/storagebls/beamlines/bl09/projects/cycle2016-II/2016021636-aperez/DATA/20161125/Pixis/XTEND_11to22/
+Xrm2NexusOutputDir=/storagebls/beamlines/bl09/projects/cycle2016-II/2016021636-aperez/DATA/20161125/Pixis/XTEND_11to22/
+FiducialSizeInPixels="15"
+ExpectedNumberOfFiducialPerImage="40"
+TomogramBinning="2"
+ 
+################################################################################
+#Loop to:
+#   - Create tlt angles file from normalized hdf5 file and rename it as .rawtlt
+#   - Use IMOD tiltxcorr to generate .prexf with transformation matrix
+#   - Use IMOD xftoxg to transform .prexf transformation matrix to .prexg
+#   - Run IMOD newsatck to generate prealigned stack
+#   - Run RAPTOR to generate Fiducial model
+#   - Use IMOD tiltalign to generate new .tlt and .tltxf files from fidual model information.
+#   - Use previously generated .prexg and .tltxf files to generate an new .xf transform
+#   - Run IMOD newsatck to generate final .ali aligned stack
+#   - Bin aligned stack
+#   - Reconstruct Tomogram using tomo3d
+################################################################################
+    
+for i in $( ls -d $Xrm2NexusOutputDir/* ); do
+    cd $i
+
+#   - Create tlt angles file from normalized hdf5 file and rename it as .rawtlt
+    norm_hdf5_array=($(ls *_norm.hdf5)) 
+    if ! [[ $norm_hdf5_array ]]; then 
+        norm_hdf5_array=($(ls *_norm_crop.hdf5)) 
+    fi
+    extract_angle ${norm_hdf5_array[0]}
+    echo "$i angles.tlt generated using extract_angle program"    
+
+#   - Use IMOD tiltxcorr to generate .prexf with transformation matrix and rename angles.tlt file as .rawtlt
+    mrc_deconv_file=`ls *_FS_deconv_*.mrc`
+    name=${mrc_deconv_file%.*}
+    mv angles.tlt ${name}.rawtlt
+
+#   - Use IMOD xftoxg to transform .prexf transformation matrix to .prexg
+    tiltxcorr -input ${mrc_deconv_file} -output ${name}.prexf -tiltfile ${name}.rawtlt -rotation 0.0 -sigma1 0.03 -radius2 0.25 -sigma2 0.05
+
+#   - Use IMOD xftoxg to transform .prexf transformation matrix to .prexg
+    xftoxg -input ${name}.prexf -nfit 0 -goutput ${name}.prexg
+
+#   - Run IMOD newsatck to generate prealigned stack
+    newstack -input ${mrc_deconv_file} -output ${name}.preali -mode 0 -xform ${name}.prexg -float 2
+
+#   - Run RAPTOR to generate Fiducial model
+    /usr/local/IMOD/bin/RAPTOR -execPath /usr/local/IMOD/bin -path . -input ${name}.preali -tracking -output raptor1 -diameter ${FiducialSizeInPixels} -markers ${ExpectedNumberOfFiducialPerImage}
+    cp raptor1/IMOD/${name}.fid.txt ${name}.fid
+    rm -r raptor1
+
+#   - Use IMOD tiltalign to generate new .tlt and .tltxf files from fidual model information.
+#   - An "ERROR: TILTALIGN - NO OUTPUT FILE FOR LOCAL TRANSFORMS SPECIFIED" error message is obtained but the .tlt and .tltxf files are generated.
+	tiltalign -ModelFile ${name}.fid -ImageFile ${name}.preali -OutputTiltFile ${name}.tlt -OutputTransformFile ${name}.tltxf -RotationAngle 0.0 -tiltfile ${name}.rawtlt -AngleOffset 0.0 -RotOption -1 -RotDefaultGrouping 5 -TiltOption 0 -MagReferenceView 1 -MagOption 0 -MagDefaultGrouping 4 -XStretchOption 0 -XStretchDefaultGrouping 7 -SkewOption 0 -SkewDefaultGrouping 11 -ResidualReportCriterion 3.0 -SurfacesToAnalyze 0 -MetroFactor 0.25 -MaximumCycles 1000 -KFactorScaling 0.7 -AxisZShift 0.0 -LocalAlignments 0 -MinFidsTotalAndEachSurface 8,3 -LocalOutputOptions 1,0,1 -LocalRotOption 3 -LocalRotDefaultGrouping 6 -LocalTiltOption 5 -LocalTiltDefaultGrouping 6 -LocalMagReferenceView 1 -LocalMagOption 3 -LocalMagDefaultGrouping 7 -LocalXStretchOption 0 -LocalXStretchDefaultGrouping 7 -LocalSkewOption 0 -LocalSkewDefaultGrouping 11 -BeamTiltOption 0  
+
+#   - Use previously generated .prexg and .tltxf files to generate an new .xf transform
+	xfproduct -in1 ${name}.prexg -in2 ${name}.tltxf -output ${name}_fid.xf
+	cp ${name}_fid.xf ${name}.xf
+
+#   - Run IMOD newsatck to generate final .ali aligned stack
+	newstack -input ${mrc_deconv_file} -output ${name}.ali -offset 0,0 -xform ${name}.xf -origin -taper 1,0
+
+#   - Bin aligned stack
+    newstack -bin ${TomogramBinning} -input ${name}.ali -output ${name}_bin${TomogramBinning}.ali
+    
+#   - Reconstruct Tomogram using tomo3d
+    BinnedTomogramHeight=`header -i ${name}_bin${TomogramBinning}.ali | grep sections | awk '{printf "%s\n", $7}'`
+    tomo3d -o ${name}_bin${TomogramBinning}_3DS30.xzy -S -l 30 -z ${BinnedTomogramHeight} -a ${name}.tlt -i ${name}_bin${TomogramBinning}.ali
+
+#   - trimvol to swap Y and Z 
+    trimvol -yz ${name}_bin${TomogramBinning}_3DS30.xzy ${name}_bin${TomogramBinning}_3DS30.mrc  
+    rm ${name}_bin${TomogramBinning}_3DS30.xzy     
+    
+done
+
+################################################################################
