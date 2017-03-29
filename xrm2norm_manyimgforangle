@@ -20,7 +20,9 @@ outdir=$3
 hdfoutdir=${outdir}/hdf_mrc_dir
 
 mkdir -p $hdfoutdir
-COUNTER=0
+#COUNTER=0
+COUNTER=1
+let numimg=numimg+1
 while [ $COUNTER -lt $numimg ]; do
     
     destdir=${outdir}/tomoout_$COUNTER
