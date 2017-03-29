@@ -42,7 +42,7 @@ cd $root_path
 
 for dir in $( ls -d $Xrm2NexusOutputDir/* ); do
     cd $dir 
-    # align projectos of the samples  
+    # align projections of the samples  
     mrc_array=($(ls *_norm_crop.mrc))
     reference=${mrc_array[1]}
     array=${mrc_array[@]/$reference}
