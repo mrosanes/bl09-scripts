@@ -17,6 +17,8 @@ nt=${#fnames[@]}
 
 echo "Number of Folders: $nt"
 
+zoneplate=${3:-25}
+
 counter=0
 while [ $counter -lt $nt ]; do
     tomo=${fnames[$counter]}
@@ -25,7 +27,7 @@ while [ $counter -lt $nt ]; do
     echo $fusion_file
     basename="${fusion_file}" #/${tomo}_FS.mrc"
     echo $basename
-    echoExec "matlab -nodisplay -r \"tomo_deconv_wiener(25,520,20161201,'${basename}', 10,0.02,20);exit\""
+    echoExec "matlab -nodisplay -r \"tomo_deconv_wiener(${zoneplate},520,20161201,'${basename}', 10,0.02,20);exit\""
 
     echoExec "cd ../.."
     let counter=counter+1
