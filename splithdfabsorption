@@ -1,0 +1,217 @@
+#!/usr/bin/python
+
+"""
+(C) Copyright 2014 Marc Rosanes
+The program is distributed under the terms of the 
+GNU General Public License (or the Lesser GPL).
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
+
+import argparse
+import nxs
+
+def SplitHdfAbsorption(inputfile, imagejhdffile):
+
+    # Open input file
+    hdf5_input_file = nxs.open(inputfile, 'r')
+    hdf5_input_file.opengroup('FastAligned')
+
+    # Extract data from input file    
+    try:
+        hdf5_input_file.opendata('Currents')
+        currents = hdf5_input_file.getdata()
+        hdf5_input_file.closedata() 
+    except:
+        try:
+            hdf5_input_file.closedata()
+        except:
+            pass
+    
+    try:
+        hdf5_input_file.opendata('ExpTimes')
+        exp_times = hdf5_input_file.getdata()
+        hdf5_input_file.closedata()
+    except:
+        try:
+            hdf5_input_file.closedata()
+        except:
+            pass
+
+    try:
+        hdf5_input_file.opendata('energy')
+        energies = hdf5_input_file.getdata()
+        hdf5_input_file.closedata() 
+    except:
+        try:
+            hdf5_input_file.closedata()
+        except:
+            pass
+
+    try:
+        hdf5_input_file.opendata('rotation_angle')
+        angles = hdf5_input_file.getdata()
+        hdf5_input_file.closedata() 
+    except:
+        try:
+            hdf5_input_file.closedata()
+        except:
+            pass
+
+    try:
+        hdf5_input_file.opendata('x_pixel_size')
+        pixelsize_x = hdf5_input_file.getdata()
+        hdf5_input_file.closedata()
+    except:
+        try:
+            hdf5_input_file.closedata()
+        except:
+            pass
+
+    try:
+        hdf5_input_file.opendata('y_pixel_size')
+        pixelsize_y = hdf5_input_file.getdata()
+        hdf5_input_file.closedata()
+    except:
+        try:
+            hdf5_input_file.closedata()
+        except:
+            pass
+
+    # Used for fastFF imagej option (imagejhdffile)
+    if imagejhdffile is not None:
+        hdf5_input_file.closegroup()
+        hdf5_input_file.close()
+        # Open imagej input file
+        hdf5_input_file = nxs.open(imagejhdffile, 'r')
+        hdf5_input_file.opengroup('FastAligned')
+
+    # Open stack of images
+    try:
+        try:
+            hdf5_input_file.opendata('spec_aligned')
+        except:
+            hdf5_input_file.opendata('tomo_aligned')
+    except:
+        hdf5_input_file.opendata('aligned')
+    infoshape = hdf5_input_file.getinfo()
+    dim_images = (infoshape[0][0], infoshape[0][1], infoshape[0][2])
+    nFrames = infoshape[0][0]
+    numrows = infoshape[0][1]
+    numcols = infoshape[0][2]
+
+    # Store data in multiple single image hdf5 files
+    for numimg in range(nFrames):
+
+        if energies[numimg] == 0:
+            energies[numimg] = (energies[numimg+1] + energies[numimg-1]) / 2
+            
+        # Create output file
+        hdf5_output_filename = (inputfile.split('.hdf')[0] +  
+                        '_' + str(round(energies[numimg],3))+'_eV'  + '.hdf5')
+
+        single_image_hdf5 = nxs.NXentry(name= "FastAligned")
+        single_image_hdf5.save(hdf5_output_filename, 'w5')
+            
+        try:
+            
+            try:
+                single_image_hdf5['Currents'] = currents[numimg]
+                single_image_hdf5['Currents'].write() 
+            except:
+                pass
+
+            try:
+                single_image_hdf5['ExpTimes'] = exp_times[numimg]
+                single_image_hdf5['ExpTimes'].write() 
+            except:
+                pass
+
+            try:
+                single_image_hdf5['energy'] = energies[numimg]
+                single_image_hdf5['energy'].write() 
+            except:
+                pass
+
+            try:
+                single_image_hdf5['rotation_angle'] = angles[numimg]
+                single_image_hdf5['rotation_angle'].write() 
+            except:
+                pass
+
+            try:
+                single_image_hdf5['x_pixel_size'] = pixelsize_x
+                single_image_hdf5['x_pixel_size'].write() 
+            except:
+                pass
+
+            try:
+                single_image_hdf5['y_pixel_size'] = pixelsize_y
+                single_image_hdf5['y_pixel_size'].write() 
+            except:
+                pass
+
+            image = hdf5_input_file.getslab([numimg, 0, 0], 
+                                            [1, numrows, numcols])
+            image = image[0, :, :]
+            image = (-1)*image + 1            
+
+            single_image_hdf5["image"] = image
+            single_image_hdf5["image"].attrs['Number of Frames'] = nFrames
+            single_image_hdf5["image"].attrs['Pixel Rows'] = numrows    
+            single_image_hdf5["image"].attrs['Pixel Columns'] = numcols
+            single_image_hdf5["image"].write()    
+
+        except Exception as e:
+            print("AN ERROR OCCURRED DURING THE CONVERSION")
+
+    try:
+        hdf5_input_file.closedata()
+    except:
+        pass
+
+    try:
+        hdf5_input_file.closegroup()
+    except:
+        pass
+
+    hdf5_input_file.close()
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description=("Split hdf5 file containing an aligned stack into " +
+                     "multiple single absorption image hdf5 files \n"))
+
+    parser.add_argument('inputfile', type=str, default=None,
+          help='Enter hdf5 file containing the stack')
+    parser.add_argument('-i', '--imagejhdf', type=str, default=None, 
+          help='Use this option to work with fastFF (cropped image and FF). ' +
+               'Default = None. Add imageJ processed hdf5 stack. ' + 
+               'The images of imagej stack are kept and the metadata ' + 
+               'of the ctalign inputfile is used.\n' + 
+               'Use \'aligned\' as imagej hdf5 generated dataset name.')              
+    args = parser.parse_args()
+    
+    print("\nSpliting hdf5...")
+    SplitHdfAbsorption(args.inputfile, args.imagejhdf)
+    print("HDF5 has been splitted\n")
+
+
+
+if __name__ == "__main__":
+    main()
+
+
+
