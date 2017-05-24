@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+
+if [ "$1" == "-h" ] ; then
+    echo "xtend_1 needs two arguments:"
+    echo '- ManyTomos output dir'
+    echo '- Output dir'
+    exit 0
+fi
+
+if [ $# -lt 2 ]
+  then
+    echo "Not enough arguments supplied"
+    echo "Execute xtend_1 -h to show the help "
+    exit -1
+fi
+
+# Load xmipp variables
+source /homelocal/sicilia/xmipp/.xmipp.bashrc
+
+ManyTomosOutputDir=$1
+Xrm2NexusOutputDir=$2
+
+
+# xrm2nexus
+
+xrm2nexus $ManyTomosOutputDir --output-dir-name $Xrm2NexusOutputDir
+
+root_path=`pwd`
+#Frame + 1 col
+CROPTYPE=2
+
+# hdf_norm_crop to mrc
+for i in $( ls $Xrm2NexusOutputDir/*/*.hdf5 ); do
+    cd `dirname $i` 
+    hdf2normcrop $i $CROPTYPE   
+    CROP_FILE_NAME=${i%.*}_norm_crop.hdf5
+    extract_angle $CROP_FILE_NAME
+    xmipp_image_convert -i $CROP_FILE_NAME -o ${i%.*}_norm_crop.mrc
+done
+
+cd $root_path
+
+for dir in $( ls -d $Xrm2NexusOutputDir/* ); do
+    cd $dir 
+    # align projections of the samples  
+    mrc_array=($(ls *_norm_crop.mrc))
+    reference=${mrc_array[1]}
+    array=${mrc_array[@]/$reference}
+    for e_mrc in ${array[@]}; do
+        /usr/bin/java -cp /homelocal/opbl09/Fiji.app/ImageJ-linux64:/homelocal/opbl09/Fiji.app/plugins/TomoJ_2.32-jar-with-dependencies.jar:/homelocal/opbl09/Fiji.app/plugins/TomoJ/Eftem_TomoJ_1.03.jar eftemtomoj.EFTEM_TomoJ -tsSignal ${dir}/${reference} 1 1 -tsBg ${dir}/${e_mrc} 2 1 -align NMI 0
+    done
+
+    # Rename output files. fiji add .mrc extension in the names
+    for mrc in ${mrc_array[@]}; do
+        fixed_name=${mrc%.*}
+        mv ${mrc}_aligned.tif  ${fixed_name}_aligned.tif
+        mv ${mrc}_aligned.transf ${fixed_name}_aligned.transf
+    done
+
+    # Fusion addition  (works with any foci number)
+    n_zp_pos=${#mrc_array[@]}
+    samplename=`echo ${mrc_array[0]} | cut -d "-" -f 1`
+    outname=${samplename}FS.mrc
+
+    # mrc array without the two first elements
+    ref_tif=${reference%.*}_aligned.tif
+
+    for tif in ${array[@]}; do
+        tif_name=${tif%.*}_aligned.tif
+        if [ ! -f ${outname} ]; then
+            xmipp_image_operate ${ref_tif} --plus $tif_name -o ${outname}
+        else
+            xmipp_image_operate ${outname} --plus ${tif_name}
+        fi
+    done
+    xmipp_image_operate ${outname} --divide $n_zp_pos   
+done
+
+cd $root_path
+
