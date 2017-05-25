@@ -23,26 +23,54 @@ Xrm2NexusOutputDir=$2
 
 # xrm2nexus
 
-xrm2nexus $ManyTomosOutputDir --output-dir-name $Xrm2NexusOutputDir
+#xrm2nexus $ManyTomosOutputDir --output-dir-name $Xrm2NexusOutputDir
 
 root_path=`pwd`
 #Frame + 1 col
 CROPTYPE=2
 
-# hdf_norm_crop to mrc
-for i in $( ls $Xrm2NexusOutputDir/*/*.hdf5 ); do
+
+# Reorganize files in folders by energies
+for dir in $( ls -d $Xrm2NexusOutputDir/* ); do
+    cd $dir
+    for filename in $( ls *.hdf5 ); do
+                
+        energy=`echo $filename | cut -d'_' -f4`
+
+        if [ ! -d "$energy" ]; then
+            mkdir -p $energy
+        fi
+        
+        mv $filename $energy
+        
+    done
+    cd ..
+done
+cd $root_path
+
+
+# First normalize and crop
+# Then hdf_norm_crop to mrc
+for i in $( ls $Xrm2NexusOutputDir/*/*/*.hdf5 ); do
+
     cd `dirname $i` 
     hdf2normcrop $i $CROPTYPE   
     CROP_FILE_NAME=${i%.*}_norm_crop.hdf5
     extract_angle $CROP_FILE_NAME
     xmipp_image_convert -i $CROP_FILE_NAME -o ${i%.*}_norm_crop.mrc
-done
 
+done
 cd $root_path
 
-for dir in $( ls -d $Xrm2NexusOutputDir/* ); do
+
+for dir in $( ls -d $Xrm2NexusOutputDir/*/* ); do
     cd $dir 
-    # align projections of the samples  
+
+    echo "###################################################################################"
+    echo $dir 
+    echo "###################################################################################"
+
+    # At each angle align the projections of the samples at many focus: multifocus (different ZP, same angle). 
     mrc_array=($(ls *_norm_crop.mrc))
     reference=${mrc_array[1]}
     array=${mrc_array[@]/$reference}
@@ -76,5 +104,7 @@ for dir in $( ls -d $Xrm2NexusOutputDir/* ); do
     xmipp_image_operate ${outname} --divide $n_zp_pos   
 done
 
+
 cd $root_path
+
 
