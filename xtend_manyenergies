@@ -23,7 +23,7 @@ Xrm2NexusOutputDir=$2
 
 # xrm2nexus (soft transition to beamline: transition script xrm2nexus_energies, 
 # before integrating to xrm2nexus)
-#xrm2nexus_energies $ManyTomosOutputDir --output-dir-name $Xrm2NexusOutputDir
+xrm2nexus_energies $ManyTomosOutputDir --output-dir-name $Xrm2NexusOutputDir
 
 root_path=`pwd`
 #Frame + 1 col
