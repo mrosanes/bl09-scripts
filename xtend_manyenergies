@@ -23,7 +23,7 @@ Xrm2NexusOutputDir=$2
 
 # xrm2nexus (soft transition to beamline: transition script xrm2nexus_energies, 
 # before integrating to xrm2nexus)
-xrm2nexus_energies $ManyTomosOutputDir --output-dir-name $Xrm2NexusOutputDir
+#xrm2nexus_energies $ManyTomosOutputDir --output-dir-name $Xrm2NexusOutputDir
 
 root_path=`pwd`
 #Frame + 1 col
@@ -35,7 +35,7 @@ for dir in $( ls -d $Xrm2NexusOutputDir/* ); do
     cd $dir
     for filename in $( ls *.hdf5 ); do
                 
-        energy=`echo $filename | cut -d'_' -f4`
+        energy=`echo $filename | cut -d'_' -f3`
 
         if [ ! -d "$energy" ]; then
             mkdir -p $energy
