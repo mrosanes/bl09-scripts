@@ -1,8 +1,11 @@
 #!/bin/bash
 
 srcpath=$1
+if [ -z "$1" ]; then
+    srcpath="./"
+fi
 
-mrc_array=($srcpath/*)
+mrc_array=($srcpath/*.mrc)
 reference=${mrc_array[0]}
 array=${mrc_array[@]/$reference}
 
@@ -14,10 +17,19 @@ echo ${array[@]}
 num_mrcs=${#mrc_array[@]}
 echo $num_mrcs
 
-basename=${reference%_norm.mrc}
-outname=${basename}_AVG_norm.mrc
+
+dirname=$(dirname "${reference}")
+filename_ref=$(basename $reference)
+date=`echo "$filename_ref" | cut -d'_' -f1`
+sample=`echo "$filename_ref" | cut -d'_' -f2`
+
+
+samplename=${dirname}/${date}_${sample}
+outname=${samplename}_AVG_norm.mrc
 
 for mrcfile in ${array[@]}; do
+    echo "------"
+    echo $mrcfile
     if [ ! -f ${outname} ]; then
         eval "scipion xmipp_image_operate ${reference} --plus $mrcfile -o ${outname}"
     else
