@@ -75,8 +75,9 @@ for dir in $( ls -d $Xrm2NexusOutputDir/*/* ); do
     reference=${mrc_array[1]}
     array=${mrc_array[@]/$reference}
     for e_mrc in ${array[@]}; do
-        /usr/bin/java -cp /homelocal/opbl09/Fiji.app/ImageJ-linux64:/homelocal/opbl09/Fiji.app/plugins/TomoJ_2.32-jar-with-dependencies.jar:/homelocal/opbl09/Fiji.app/plugins/TomoJ/Eftem_TomoJ_1.03.jar eftemtomoj.EFTEM_TomoJ -tsSignal ${dir}/${reference} 1 1 -tsBg ${dir}/${e_mrc} 2 1 -align NMI 0
-        #/usr/bin/java -cp /home/mrosanes/z/bin/Fiji.app/ImageJ-linux64:/home/mrosanes/z/bin/Fiji.app/plugins/TomoJ_2.32-jar-with-dependencies.jar:/home/mrosanes/z/bin/Fiji.app/plugins/TomoJ/Eftem_TomoJ_1.03.jar eftemtomoj.EFTEM_TomoJ -tsSignal ${dir}/${reference} 1 1 -tsBg ${dir}/${e_mrc} 2 1 -align NMI 0
+        FIJI_PATHS=$FIJI_HOME/ImageJ-linux64:$FIJI_PLUGINS/TomoJ_2.32-jar-with-dependencies.jar:$FIJI_PLUGINS/TomoJ/Eftem_TomoJ_1.03.jar
+        java -cp $FIJI_PATHS eftemtomoj.EFTEM_TomoJ -tsSignal ${dir}/${reference} 1 1 -tsBg ${dir}/${e_mrc} 2 1 -align NMI 0
+        #java -cp /home/mrosanes/z/bin/Fiji.app/ImageJ-linux64:/home/mrosanes/z/bin/Fiji.app/plugins/TomoJ_2.32-jar-with-dependencies.jar:/home/mrosanes/z/bin/Fiji.app/plugins/TomoJ/Eftem_TomoJ_1.03.jar eftemtomoj.EFTEM_TomoJ -tsSignal ${dir}/${reference} 1 1 -tsBg ${dir}/${e_mrc} 2 1 -align NMI 0
     done
 
     # Rename output files. fiji add .mrc extension in the names
