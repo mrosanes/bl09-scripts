@@ -34,7 +34,7 @@ then
     echo "CROP [0 0 1 0]"
     crophdf $CROP_FILE_NAME -r 0 0 1 0 -s TomoNormalized
 else
-    echo "CROP [26 24 21 20]"
+    echo "CROP [26 24 21 19]"
     crophdf $CROP_FILE_NAME -r 26 24 21 19 -s TomoNormalized
 fi
 
