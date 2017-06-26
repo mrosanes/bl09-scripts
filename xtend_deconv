@@ -136,7 +136,10 @@ for dir in $( ls -d $Xrm2NexusOutputDir/*/* ); do
     echo $DATE
     echo $ENERGY
     echo `pwd`
+    echo "DECONVOLUTION:-----"
+    echo "tomo_deconv_wiener ${ZP_DR} ${ENERGY} ${DATE} ${fusename} ${DX} ${KW} ${ZSIZE} ${PSF_DIR}"
     tomo_deconv_wiener ${ZP_DR} ${ENERGY} ${DATE} ${fusename} ${DX} ${KW} ${ZSIZE} ${PSF_DIR}
+    echo "-------------------"
 done
 
 
