@@ -1,0 +1,147 @@
+#!/bin/bash
+
+
+# Rename all files in a folder:
+# for FILENAME in *; do mv $FILENAME Unix_$FILENAME; done 
+
+# Execute and print the sequence
+echoExec()
+{
+ COMMAND="$@"
+ echo '-->' $COMMAND
+ eval $COMMAND
+}
+
+
+numimg=$1
+srcpath=$2
+outdir=$3
+
+
+######## XRM 2 NORM CROP WHEN WORKING WITH MANY IMAGES PER ANGLE ###############
+
+hdfoutdir=${outdir}/hdf_mrc_dir
+
+mkdir -p $hdfoutdir
+COUNTER=0
+
+## If images begins at 1
+#COUNTER=1
+#let numimg=numimg+1
+## If images begins at 1
+
+while [ $COUNTER -lt $numimg ]; do
+    destdir=${outdir}/tomoout_$COUNTER
+    echo $destdir
+    mkdir -p $destdir
+
+    echo "Copying xrm files to independent folder according the number of image"
+    for i in $( ls $srcpath/*_$COUNTER.xrm ); do
+        #echo $i
+        cp -p $i $destdir
+    done
+    
+    echo "Copying FF files in the same folder"
+    for i in $( ls $srcpath/*_FF_* ); do
+        #echo $i
+        cp -p $i $destdir
+    done
+
+    echo "xrm2nexus conversion"
+    xrm2nexus $destdir --output-dir-name $hdfoutdir
+
+    let COUNTER=COUNTER+1
+done
+
+
+echo "Normalizing and croping tomographies"
+CROPTYPE=2
+for hdfrawfile in $( ls ${hdfoutdir}/*/*.hdf5 ); do
+    echo $hdfrawfile
+    hdf2normcrop $hdfrawfile $CROPTYPE
+done
+
+
+hdfnormdir=${hdfoutdir}/hdfnorm
+mkdir -p ${hdfnormdir}
+for hdfnormfile in $( ls ${hdfoutdir}/*/*_norm_crop.hdf5 ); do
+    mv ${hdfnormfile} ${hdfnormdir}
+done
+
+cd ./${hdfnormdir}
+for hdfnormfile in $( ls ); do
+    basefilename=${hdfnormfile%_norm_crop.hdf5}
+    mrcnormfile=${basefilename}_norm.mrc
+    hdftreeandfile=TomoNormalized/TomoNormalized@${hdfnormfile}
+    scipion xmipp_image_convert -i $hdftreeandfile -o $mrcnormfile
+done
+cd -
+
+
+mrcnormdir=${hdfoutdir}/mrcnorm
+mkdir -p ${mrcnormdir}
+for mrcnormfile in $( ls ${hdfnormdir}/*_norm.mrc ); do
+    mv ${mrcnormfile} ${mrcnormdir}
+done
+
+
+
+######## ALIGN ALL IMAGES CORRESPONDING TO EACH INDIVIDUAL ANGLE ###############
+#cd $root_path
+cd ./${mrcnormdir}
+mrcdir=`pwd`
+
+# align projections of the samples
+mrc_array=($(ls *_norm.mrc))
+reference=${mrc_array[1]}
+array=${mrc_array[@]/$reference}
+
+for e_mrc in ${array[@]}; do
+    echo ${mrcdir}/${reference}
+    FIJI_PATHS=$FIJI_HOME/ImageJ-linux64:$FIJI_PLUGINS/TomoJ_2.32-jar-with-dependencies.jar:$FIJI_PLUGINS/TomoJ/Eftem_TomoJ_1.03.jar
+    java -cp $FIJI_PATHS eftemtomoj.EFTEM_TomoJ -tsSignal ${mrcdir}/${reference} 1 1 -tsBg ${mrcdir}/${e_mrc} 2 1 -align NMI 0
+done
+
+# Rename output files. fiji add .mrc extension in the names
+for mrc in ${mrc_array[@]}; do
+    fixed_name=${mrc%.*}
+    mv ${mrc}_aligned.tif  ${fixed_name}_aligned.tif
+    mv ${mrc}_aligned.transf ${fixed_name}_aligned.transf
+done
+
+
+######################## FUSE IMAGES: AVERAGE IMAGES ###########################
+
+# Any number of images for fusion addition
+n_images=${#mrc_array[@]}
+
+samplename=`echo ${mrc_array[0]} | cut -d "." -f 1`
+
+# Output filename of Averaged (Fusion) images 
+# The average is done between the different images at an equal angle
+# i.e: at an equal position inside the stack of the different input mrc files. 
+outname=${samplename}_FS.mrc
+
+# mrc array without the two first elements
+ref_tif=${reference%.*}_aligned.tif
+
+for tif in ${array[@]}; do
+    tif_name=${tif%.*}_aligned.tif
+    if [ ! -f ${outname} ]; then
+        scipion xmipp_image_operate ${ref_tif} --plus $tif_name -o ${outname}
+    else
+        scipion xmipp_image_operate ${outname} --plus ${tif_name}
+    fi
+done
+scipion xmipp_image_operate ${outname} --divide $n_images
+
+
+
+
+
+
+
+
+
+
+
