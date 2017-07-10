@@ -1,0 +1,19 @@
+#!/bin/bash
+
+hdfnormdir=$1
+mrcnormdir=$2
+
+cd ./${hdfnormdir}
+for hdfnormfile in $( ls ); do
+    basefilename=${hdfnormfile%_norm_crop.hdf5}
+    mrcnormfile=${basefilename}_norm.mrc
+    hdftreeandfile=TomoNormalized/TomoNormalized@${hdfnormfile}
+    eval "scipion xmipp_image_convert -i $hdftreeandfile -o $mrcnormfile"
+done
+cd -
+
+
+mkdir -p ${mrcnormdir}
+for mrcnormfile in $( ls ${hdfnormdir}/*_norm.mrc ); do
+    mv ${mrcnormfile} ${mrcnormdir}
+done
