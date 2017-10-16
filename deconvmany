@@ -8,27 +8,85 @@ echoExec()
  eval $COMMAND
 }
 
+
+if [ "$1" == "-h" ]; then
+  echo "Usage: `basename $0` : deconvolves many .mrc located in different subfolders"
+  echo "       - Base Folder as first argument"
+  echo "       - ZP as second argument (default: 25)"
+  echo "       - Energy as third argument (default: 520)"
+  echo "       - Date as fourth argument (default: 20170926)"
+  echo "       - DX as fifth argument (default: 12)"
+  echo "       - KW as sixth argument (default: 0.02)"
+  echo "       - ZSize as seventh argument (default: 20)"
+  echo "       - PSF_DIR as eighth argument (default: /beamlines/bl09/controls/user_resources/psf_directory)"
+  exit 0
+fi
+
+
 fnames=(`ls -d $1/*/`)
 
 echo $fnames
-
-outname=$2
 nt=${#fnames[@]}
+
+
 
 echo "Number of Folders: $nt"
 
-zoneplate=${3:-25}
+if [ -z "$2" ]; then
+    ZP_DR=25
+else
+    ZP_DR=$2
+fi
+
+if [ -z "$3" ]; then
+    ENERGY=520
+else
+    ENERGY=$3
+fi
+
+if [ -z "$4" ]; then
+    DATE=20170926
+else
+    DATE=$4
+fi
+
+if [ -z "$5" ]; then
+    DX=12
+else
+    DX=$5
+fi
+
+if [ -z "$6" ]; then
+    KW=0.02
+else
+    KW=$6
+fi
+
+if [ -z "$7" ]; then
+    ZSIZE=20
+else
+    ZSIZE=$7
+fi
+
+if [ -z "$8" ]; then
+    PSF_DIR="/beamlines/bl09/controls/user_resources/psf_directory"
+else
+    PSF_DIR=$8
+fi
+
 
 counter=0
 while [ $counter -lt $nt ]; do
     tomo=${fnames[$counter]}
     echoExec "cd $tomo"
     fusion_file=$(find -name '*_FS.mrc')
-    echo $fusion_file
     basename="${fusion_file}" #/${tomo}_FS.mrc"
     echo $basename
-    echoExec "matlab -nodisplay -r \"tomo_deconv_wiener(${zoneplate},520,20161201,'${basename}', 10,0.02,20);exit\""
 
+    echo "DECONVOLUTION:-----"
+    echo "tomo_deconv_wiener ${ZP_DR} ${ENERGY} ${DATE} ${basename} ${DX} ${KW} ${ZSIZE} ${PSF_DIR}"
+    tomo_deconv_wiener ${ZP_DR} ${ENERGY} ${DATE} ${basename} ${DX} ${KW} ${ZSIZE} ${PSF_DIR}
+    echo "-------------------"
     echoExec "cd ../.."
     let counter=counter+1
 done
