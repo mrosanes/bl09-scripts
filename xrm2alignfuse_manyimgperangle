@@ -98,7 +98,7 @@ array=${mrc_array[@]/$reference}
 
 for e_mrc in ${array[@]}; do
     echo ${mrcdir}/${reference}
-    FIJI_PATHS=$FIJI_HOME/ImageJ-linux64:$FIJI_PLUGINS/TomoJ_2.32-jar-with-dependencies.jar:$FIJI_PLUGINS/TomoJ/Eftem_TomoJ_1.03.jar
+    FIJI_PATHS=$FIJI_HOME/ImageJ-linux64:$FIJI_PLUGINS/TomoJ_2.32-jar-with-dependencies.jar:$FIJI_PLUGINS/TomoJ/Eftem_TomoJ_1.04.jar
     java -cp $FIJI_PATHS eftemtomoj.EFTEM_TomoJ -tsSignal ${mrcdir}/${reference} 1 1 -tsBg ${mrcdir}/${e_mrc} 2 1 -align NMI 0
 done
 
