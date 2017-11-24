@@ -56,8 +56,14 @@ def readMRC(inputfile, treehdf):
     fa = f.read(40)
     data_header = struct.unpack('<10I', fa)
     numcols = data_header[0]
+    print("num columns")
+    print(numcols)
     numrows = data_header[1]
+    print("num rows")
+    print(numrows)
     numslices = data_header[2]
+    print("num slices in the stack")
+    print(numslices)
     mode = data_header[3] #The mode is the format of data present in the mrc.
 
 
