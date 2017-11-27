@@ -45,7 +45,7 @@ while [ $COUNTER -lt $numimg ]; do
     done
 
     echo "xrm2nexus conversion"
-    xrm2nexus $destdir --output-dir-name $hdfoutdir
+    manytomos2nexus $destdir --output-dir-name $hdfoutdir
 
     let COUNTER=COUNTER+1
 done
