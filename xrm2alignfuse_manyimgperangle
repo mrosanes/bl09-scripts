@@ -13,58 +13,23 @@ echoExec()
 }
 
 
-numimg=$1
-srcpath=$2
-outdir=$3
+txm_txt_file=$1
+outdir=$2
 
-
-######## XRM 2 NORM CROP WHEN WORKING WITH MANY IMAGES PER ANGLE ###############
-
-hdfoutdir=${outdir}/hdf_mrc_dir
-
-mkdir -p $hdfoutdir
-COUNTER=0
-
-## If images begins at 1
-#COUNTER=1
-#let numimg=numimg+1
-## If images begins at 1
-
-while [ $COUNTER -lt $numimg ]; do
-    destdir=${outdir}/tomoout_$COUNTER
-    echo $destdir
-    mkdir -p $destdir
-
-    echo "Copying xrm files to independent folder according the number of image"
-    for i in $( ls $srcpath/*_$COUNTER.xrm ); do
-        #echo $i
-        cp -p $i $destdir
-    done
-    
-    echo "Copying FF files in the same folder"
-    for i in $( ls $srcpath/*_FF_* ); do
-        #echo $i
-        cp -p $i $destdir
-    done
-
-    echo "xrm2nexus conversion"
-    manytomos2nexus $destdir --output-dir-name $hdfoutdir
-
-    let COUNTER=COUNTER+1
-done
-
+echo "xrm2nexus conversion"
+xrm2nexus $txm_txt_file --output-dir $outdir --organize-by-repetitions True
 
 echo "Normalizing and croping tomographies"
 CROPTYPE=2
-for hdfrawfile in $( ls ${hdfoutdir}/*/*.hdf5 ); do
+for hdfrawfile in $( ls ${outdir}/*/*.hdf5 ); do
     echo $hdfrawfile
     hdf2normcrop $hdfrawfile $CROPTYPE
 done
 
 
-hdfnormdir=${hdfoutdir}/hdfnorm
+hdfnormdir=${outdir}/hdfnorm
 mkdir -p ${hdfnormdir}
-for hdfnormfile in $( ls ${hdfoutdir}/*/*_norm_crop.hdf5 ); do
+for hdfnormfile in $( ls ${outdir}/*/*_norm_crop.hdf5 ); do
     mv ${hdfnormfile} ${hdfnormdir}
 done
 
@@ -78,7 +43,7 @@ done
 cd -
 
 
-mrcnormdir=${hdfoutdir}/mrcnorm
+mrcnormdir=${outdir}/mrcnorm
 mkdir -p ${mrcnormdir}
 for mrcnormfile in $( ls ${hdfnormdir}/*_norm.mrc ); do
     mv ${mrcnormfile} ${mrcnormdir}
