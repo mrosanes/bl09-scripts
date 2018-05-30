@@ -2,8 +2,8 @@
 
 
 # User Input: 
-ManyTomosOutputDir=/storagebls/beamlines/bl09/projects/cycle2016-II/2016021636-aperez/DATA/20161125/Pixis/XTEND_11to22/
-Xrm2NexusOutputDir=/storagebls/beamlines/bl09/projects/cycle2016-II/2016021636-aperez/DATA/20161125/Pixis/XTEND_11to22/
+ManyTomosOutputDir=/storagebls/beamlines/bl09/projects/cycle2018-I/2017092459-cromero/DATA/20180510/Sample3_NoStarve/XTEND_tomos0223/20180510_tomo02/515.0/
+Xrm2NexusOutputDir=/storagebls/beamlines/bl09/projects/cycle2018-I/2017092459-cromero/DATA/20180510/Sample3_NoStarve/XTEND_tomos0223/20180510_tomo02/515.0/
 FiducialSizeInPixels="15"
 ExpectedNumberOfFiducialPerImage="40"
 TomogramBinning="2"
