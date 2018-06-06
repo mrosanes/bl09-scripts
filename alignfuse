@@ -1,47 +1,121 @@
-#!/usr/bin/env bash
+#!/usr/bin/python
 
-MrcInputDir=`pwd`
+"""
+(C) Copyright 2018 Marc Rosanes
+The program is distributed under the terms of the 
+GNU General Public License (or the Lesser GPL).
 
-# align projections of the samples
-mrc_array=($(ls *_norm.mrc))
-reference=${mrc_array[1]}
-array=${mrc_array[@]/$reference}
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
 
-for e_mrc in ${array[@]}; do
-    echo ${MrcInputDir}/${reference}
-    FIJI_PATHS=$FIJI_HOME/ImageJ-linux64:$FIJI_PLUGINS/TomoJ_2.32-jar-with-dependencies.jar:$FIJI_PLUGINS/TomoJ/Eftem_TomoJ_1.04.jar
-    java -cp $FIJI_PATHS eftemtomoj.EFTEM_TomoJ -tsSignal ${MrcInputDir}/${reference} 1 1 -tsBg ${MrcInputDir}/${e_mrc} 2 1 -align NMI 0
-done
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
 
-# Rename output files. fiji add .mrc extension in the names
-for mrc in ${mrc_array[@]}; do
-    fixed_name=${mrc%.*}
-    mv ${mrc}_aligned.tif  ${fixed_name}_aligned.tif
-    mv ${mrc}_aligned.transf ${fixed_name}_aligned.transf
-done
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
 
-# Any number of images for fusion addition
-n_images=${#mrc_array[@]}
+import os
+import glob
+import argparse
 
-samplename=`echo ${mrc_array[0]} | cut -d "." -f 1`
 
-# Output filename of Averaged (Fusion) images 
-# The average is done between the different images at an equal angle
-# i.e: at an equal position inside the stack of the different input mrc files. 
-outname=${samplename}_FS.mrc
+def main():
 
-# mrc array without the two first elements
-ref_tif=${reference%.*}_aligned.tif
+    # Storage of current directory: initial path before executing the script.
+    intitialpath = os.getcwd()
+    
+    parser = argparse.ArgumentParser(
+        description='Merge many mrc stacks by sample.')
+        
+    parser.add_argument('-f',
+                        '--folder',
+                        type=str,
+                        default=os.getcwd(),
+                        help="Indicates the folder address where the "
+                             "the mrc stacks to be merged are located.")
 
-for tif in ${array[@]}; do
-    tif_name=${tif%.*}_aligned.tif
-    if [ ! -f ${outname} ]; then
-        eval "scipion xmipp_image_operate ${ref_tif} --plus $tif_name -o ${outname}"
-    else
-        eval "scipion xmipp_image_operate ${outname} --plus ${tif_name}"
-    fi
-done
-eval "scipion xmipp_image_operate ${outname} --divide $n_images"
+    parser.add_argument('-n',
+                        '--numfields',
+                        type=int,
+                        default=2,
+                        help="Number of fields that should be equal to "
+                             "merge those given files.")
+                             
+    args = parser.parse_args()
+    general_folder = args.folder
+    os.chdir(general_folder)
 
-cd $root_path
+    fiji_home = os.environ.get("FIJI_HOME")
+    fiji_plugins = os.environ.get("FIJI_PLUGINS")
+    fiji_paths = (fiji_home + "/ImageJ-linux64:" + fiji_plugins 
+                  + "/TomoJ_2.32-jar-with-dependencies.jar:" 
+                  + fiji_plugins + "/TomoJ/Eftem_TomoJ_1.04.jar")    
+    
+    samples = []
+    for file in os.listdir("."):
+        sample = ""
+        if file.endswith(".mrc"):
+            splitted_file = file.split("_")
+            sample = splitted_file[0]
+            for subname in range(args.numfields-1):
+                sample = sample + "_" + splitted_file[subname+1]
+        if sample != "":
+            samples.append(sample)
+    
+    set_samples = set(samples)
+    print(set_samples)
+    num_samples = len(set_samples)
+    for set_sample in set_samples:
+        print(set_sample)
+        pattern = set_sample + "*"
+        files = glob.glob(set_sample + '*.mrc')
+        print(files)
+        num_files = len(files)
+        reference = files[0]
+        files.pop(0)
+        if num_files >= 2:
+            for i in range(len(files)): 
+                os.system("java -cp " + fiji_paths + " eftemtomoj.EFTEM_TomoJ "
+                          + "-tsSignal ./" + reference + " 1 1 -tsBg ./" 
+                          + files[i] + " 2 1 -align NMI 0")
+
+    for file in os.listdir("."):
+        if file.endswith(".mrc_aligned.tif"):
+            new_name = file.replace(".mrc_aligned.tif", "_aligned.tif")
+            os.system("mv " + file + " " + new_name)
+        if file.endswith(".mrc_aligned.transf"):
+            new_name = file.replace(".mrc_aligned.transf", "_aligned.transf")
+            os.system("mv " + file + " " + new_name)
+    
+    for set_sample in set_samples:
+        print(set_sample)
+        pattern = set_sample + "*"
+        files = glob.glob(set_sample + '*.tif')
+        num_files = len(files)
+        reference = files[0]  
+        output = set_sample + "_FS.mrc"   
+        files.pop(0)
+        if num_files >= 2:
+            for i in range(len(files)):
+                if i == 0:
+                    print("sum 2 files")
+                    os.system("scipion xmipp_image_operate " + reference + 
+                            " --plus " + files[i] + " -o " + output)
+                else:
+                    print("sum more files")
+                    os.system("scipion xmipp_image_operate " + output + 
+                            " --plus " + files[i])
+            os.system("scipion xmipp_image_operate " + output + 
+                    " --divide " + str(num_files))          
+    # Return to initial path, the one that we had before executing the script.
+    os.chdir(intitialpath)
+    
+
+if __name__ == "__main__":
+    main()
 
