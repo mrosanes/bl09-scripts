@@ -29,14 +29,6 @@ if [ "$1" == "-h" ]; then
 fi
 
 
-fnames=(`ls -d $1/*/`)
-
-echo $fnames
-nt=${#fnames[@]}
-
-
-
-echo "Number of Folders: $nt"
 
 if [ -z "$2" ]; then
     ZP_DR=25
@@ -81,18 +73,39 @@ else
 fi
 
 
-counter=0
-while [ $counter -lt $nt ]; do
-    tomo=${fnames[$counter]}
-    echoExec "cd $tomo"
-    fusion_file=$(find -name '*_FS.mrc')
-    basename="${fusion_file}" #/${tomo}_FS.mrc"
-    echo $basename
+fnames=(`ls -d $1/*/`)
+nt=${#fnames[@]}
+echo "Number of Folders: $nt"
 
-    echo "DECONVOLUTION:-----"
-    echo "tomo_deconv_wiener ${ZP_DR} ${ENERGY} ${DATE} ${basename} ${DX} ${KW} ${ZSIZE} ${PSF_DIR}"
-    tomo_deconv_wiener ${ZP_DR} ${ENERGY} ${DATE} ${basename} ${DX} ${KW} ${ZSIZE} ${PSF_DIR}
-    echo "-------------------"
-    echoExec "cd ../.."
-    let counter=counter+1
-done
+if  [ $nt == 0 ]; then
+    cd $1
+    fusion_file=($(find -name '*_FS.mrc'))
+
+    for filename in "${fusion_file[@]}"; do 
+        echo "DECONVOLUTION:-----"
+        echo $filename
+        echo "tomo_deconv_wiener ${ZP_DR} ${ENERGY} ${DATE} ${filename} ${DX} ${KW} ${ZSIZE} ${PSF_DIR}"
+        tomo_deconv_wiener ${ZP_DR} ${ENERGY} ${DATE} ${filename} ${DX} ${KW} ${ZSIZE} ${PSF_DIR}
+        echo "-------------------"
+    done    
+else
+    counter=0
+    while [ $counter -lt $nt ]; do
+        tomo=${fnames[$counter]}
+        echoExec "cd $tomo"
+
+        fusion_file=($(find -name '*_FS.mrc'))
+
+        for filename in "${fusion_file[@]}"; do 
+            echo "DECONVOLUTION:-----"
+            echo $filename
+            echo "tomo_deconv_wiener ${ZP_DR} ${ENERGY} ${DATE} ${filename} ${DX} ${KW} ${ZSIZE} ${PSF_DIR}"
+            tomo_deconv_wiener ${ZP_DR} ${ENERGY} ${DATE} ${filename} ${DX} ${KW} ${ZSIZE} ${PSF_DIR}
+            echo "-------------------"
+        done
+
+        echoExec "cd ../.."
+        let counter=counter+1
+    done
+fi
+
