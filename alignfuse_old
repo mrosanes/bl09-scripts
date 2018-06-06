@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+
+MrcInputDir=`pwd`
+
+# align projections of the samples
+mrc_array=($(ls *_norm.mrc))
+reference=${mrc_array[1]}
+array=${mrc_array[@]/$reference}
+
+for e_mrc in ${array[@]}; do
+    echo ${MrcInputDir}/${reference}
+    FIJI_PATHS=$FIJI_HOME/ImageJ-linux64:$FIJI_PLUGINS/TomoJ_2.32-jar-with-dependencies.jar:$FIJI_PLUGINS/TomoJ/Eftem_TomoJ_1.04.jar
+    java -cp $FIJI_PATHS eftemtomoj.EFTEM_TomoJ -tsSignal ${MrcInputDir}/${reference} 1 1 -tsBg ${MrcInputDir}/${e_mrc} 2 1 -align NMI 0
+done
+
+# Rename output files. fiji add .mrc extension in the names
+for mrc in ${mrc_array[@]}; do
+    fixed_name=${mrc%.*}
+    mv ${mrc}_aligned.tif  ${fixed_name}_aligned.tif
+    mv ${mrc}_aligned.transf ${fixed_name}_aligned.transf
+done
+
+# Any number of images for fusion addition
+n_images=${#mrc_array[@]}
+
+samplename=`echo ${mrc_array[0]} | cut -d "." -f 1`
+
+# Output filename of Averaged (Fusion) images 
+# The average is done between the different images at an equal angle
+# i.e: at an equal position inside the stack of the different input mrc files. 
+outname=${samplename}_FS.mrc
+
+# mrc array without the two first elements
+ref_tif=${reference%.*}_aligned.tif
+
+for tif in ${array[@]}; do
+    tif_name=${tif%.*}_aligned.tif
+    if [ ! -f ${outname} ]; then
+        eval "scipion xmipp_image_operate ${ref_tif} --plus $tif_name -o ${outname}"
+    else
+        eval "scipion xmipp_image_operate ${outname} --plus ${tif_name}"
+    fi
+done
+eval "scipion xmipp_image_operate ${outname} --divide $n_images"
+
+cd $root_path
+
