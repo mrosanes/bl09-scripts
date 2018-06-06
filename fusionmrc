@@ -36,7 +36,7 @@ def main():
                         '--folder',
                         type=str,
                         default=os.getcwd(),
-                        help="Indicates the folder adress where the "
+                        help="Indicates the folder address where the "
                              "the mrc stacks to be merged are located.")
 
     parser.add_argument('-n',
