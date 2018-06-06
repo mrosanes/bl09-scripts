@@ -1,43 +1,93 @@
-#!/bin/bash
+#!/usr/bin/python
 
-srcpath=$1
-if [ -z "$1" ]; then
-    srcpath="./"
-fi
+"""
+(C) Copyright 2018 Marc Rosanes
+The program is distributed under the terms of the 
+GNU General Public License (or the Lesser GPL).
 
-mrc_array=($srcpath/*.mrc)
-reference=${mrc_array[0]}
-array=${mrc_array[@]/$reference}
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
 
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
 
-echo ${mrc_array[@]}
-echo ${reference[@]}
-echo ${array[@]}
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
 
-num_mrcs=${#mrc_array[@]}
-echo $num_mrcs
-
-
-dirname=$(dirname "${reference}")
-filename_ref=$(basename $reference)
-date=`echo "$filename_ref" | cut -d'_' -f1`
-sample=`echo "$filename_ref" | cut -d'_' -f2`
-
-
-samplename=${dirname}/${date}_${sample}
-outname=${samplename}_AVG_norm.mrc
-
-for mrcfile in ${array[@]}; do
-    echo "------"
-    echo $mrcfile
-    if [ ! -f ${outname} ]; then
-        eval "scipion xmipp_image_operate ${reference} --plus $mrcfile -o ${outname}"
-    else
-        eval "scipion xmipp_image_operate ${outname} --plus ${mrcfile}"
-    fi
-done
-eval "scipion xmipp_image_operate ${outname} --divide $num_mrcs"
+import os
+import glob
+import argparse
 
 
+def main():
 
+    # Storage of current directory: initial path before executing the script.
+    intitialpath = os.getcwd()
+    
+    parser = argparse.ArgumentParser(
+        description='Merge many mrc stacks by sample.')
+        
+    parser.add_argument('-f',
+                        '--folder',
+                        type=str,
+                        default=os.getcwd(),
+                        help="Indicates the folder adress where the "
+                             "the mrc stacks to be merged are located.")
 
+    parser.add_argument('-n',
+                        '--numfields',
+                        type=int,
+                        default=2,
+                        help="Number of fields that should be equal to "
+                             "merge those given files.")
+                             
+    args = parser.parse_args()
+    general_folder = args.folder
+    os.chdir(general_folder)
+    
+    samples = []
+    for file in os.listdir("."):
+        sample = ""
+        if file.endswith(".mrc"):
+            splitted_file = file.split("_")
+            sample = splitted_file[0]
+            for subname in range(args.numfields-1):
+                sample = sample + "_" + splitted_file[subname+1]
+        samples.append(sample)
+    
+    set_samples = set(samples)
+    num_samples = len(set_samples)
+      
+    for set_sample in set_samples:
+        print(set_sample)
+        pattern = set_sample + "*"
+        files = glob.glob(set_sample + '*.mrc')
+        print(files)
+        num_files = len(files)
+        reference = files[0]
+        output = set_sample + "_AVG_norm.mrc"
+        files.pop(0)
+        if num_files >= 2:
+            for i in range(len(files)):
+                if i == 0:
+                    os.system("scipion xmipp_image_operate " + reference + 
+                            " --plus " + files[i] + " -o " + output)
+                else:
+                    os.system("scipion xmipp_image_operate " + output + 
+                            " --plus " + files[i])
+            os.system("scipion xmipp_image_operate " + output + 
+                    " --divide " + str(num_files))     
+      
+    # Return to initial path, the one that we had before executing the script.
+    os.chdir(intitialpath)
+    
+if __name__ == "__main__":
+    main()
+
+    
+    
