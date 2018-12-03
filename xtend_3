@@ -2,10 +2,10 @@
 
 
 # User Input: 
-ManyTomosOutputDir=/storagebls/beamlines/bl09/projects/cycle2018-I/2017092459-cromero/DATA/20180510/Sample3_NoStarve/XTEND_tomos0223/20180510_tomo02/515.0/
-Xrm2NexusOutputDir=/storagebls/beamlines/bl09/projects/cycle2018-I/2017092459-cromero/DATA/20180510/Sample3_NoStarve/XTEND_tomos0223/20180510_tomo02/515.0/
-FiducialSizeInPixels="15"
-ExpectedNumberOfFiducialPerImage="40"
+ManyTomosOutputDir=/storagebls/beamlines/bl09/projects/cycle2018-II/2018022654-amatilla-duenas/DATA/20181016/S7/tomo06_XTEND/20181016_tomo06/520.0/Raptor
+Xrm2NexusOutputDir=/storagebls/beamlines/bl09/projects/cycle2018-II/2018022654-amatilla-duenas/DATA/20181016/S7/tomo06_XTEND/20181016_tomo06/520.0/Raptor
+FiducialSizeInPixels="11"
+ExpectedNumberOfFiducialPerImage="5"
 TomogramBinning="2"
  
 ################################################################################
