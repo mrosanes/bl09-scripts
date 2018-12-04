@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+
+# Call the script in the path where are the inputs.
+hdf_norm_file=$1
+
+extract_angle $hdf_norm_file
+rawtlt_file="angles.tlt"
+
+echo $hdf_norm_file
+echo $rawtlt_file
+
+# From hdf5 to mrc
+norm_tree_hdf5='TomoNormalized/TomoNormalized@'${hdf_norm_file}
+mrc_file=${hdf_norm_file%.hdf5}.mrc
+scipion xmipp_image_convert -i $norm_tree_hdf5 -o $mrc_file
+sleep 2
+
+#mrc_file=20170923_tomo45_Single.mrc
+#rawtlt_file=20170923_tomo45_Single_deconv_k_0.03_zsize_3.rawtlt
+
+sample_name=${mrc_file#"./"}
+sample_name=`echo "$sample_name" | tr . \.`
+sample_name="${sample_name%.*}"
+
+echo $sample_name
+# Copy templates and use the sample_name
+cp /beamlines/bl09/controls/user-scripts/templates/tracka.* .
+
+sed -i  "s/<FILENAME>/$sample_name/g" tracka.*
+sed -i  "s/<TILT_FILENAME>/$rawtlt_file/g" tracka.*
+
+# Use IMOD xftoxg to transform .prexf transformation matrix to .prexg
+tiltxcorr -input $mrc_file -output $sample_name.prexf -tiltfile $rawtlt_file -rotation 0.0 -sigma1 0.03 -radius2 0.25 -sigma2 0.05
+# Use IMOD xftoxg to transform .prexf transformation matrix to .prexg
+xftoxg -input $sample_name.prexf -nfit 0 -goutput $sample_name.prexg
+# Run IMOD newsatck to generate prealigned stack
+newstack -input $mrc_file -output $sample_name.preali -mode 0 -xform $sample_name.prexg -float 2
+autofidseed -track tracka.com -spacing 0.85 -peak 1.0 -number 30
+beadtrack -StandardInput < tracka.stdin
+tiltalign -ModelFile $sample_name.fid -ImageFile $sample_name.preali -OutputTiltFile $sample_name.tlt -OutputTransformFile $sample_name.tltxf -RotationAngle 0.0 -tiltfile $rawtlt_file -AngleOffset 0.0 -RotOption -1 -RotDefaultGrouping 5 -TiltOption 0 -MagReferenceView 1 -MagOption 0 -MagDefaultGrouping 4 -XStretchOption 0 -XStretchDefaultGrouping 7 -SkewOption 0 -SkewDefaultGrouping 11 -ResidualReportCriterion 3.0 -SurfacesToAnalyze 0 -MetroFactor 0.25 -MaximumCycles 1000 -KFactorScaling 0.7 -AxisZShift 0.0 -LocalAlignments 0 -MinFidsTotalAndEachSurface 8,3 -LocalOutputOptions 1,0,1 -LocalRotOption 3 -LocalRotDefaultGrouping 6 -LocalTiltOption 5 -LocalTiltDefaultGrouping 6 -LocalMagReferenceView 1 -LocalMagOption 3 -LocalMagDefaultGrouping 7 -LocalXStretchOption 0 -LocalXStretchDefaultGrouping 7 -LocalSkewOption 0 -LocalSkewDefaultGrouping 11 -BeamTiltOption 0
+# IGNORE "ERROR: TILTALIGN - NO OUTPUT FILE FOR LOCAL TRANSFORMS SPECIFIED"
+xfproduct -in1 $sample_name.prexg -in2 $sample_name.tltxf -output $sample_name_fid.xf
+newstack -input $mrc_file -output $sample_name.ali -offset 0,0 -xform $sample_name_fid.xf -origin -taper 1,0
+
