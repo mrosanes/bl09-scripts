@@ -1,27 +1,36 @@
 #!/usr/bin/env bash
 
 if [ "$1" == "-h" ]; then
-  echo "Usage: `basename $0` normalized_hdf5"
-  echo "This script can only be used to align stacks with fiducials"
-  echo ""
+  echo "This script is used to align stacks with fiducials"
+  echo "Usage:"
+  echo "`basename $0` normalized_hdf5"
+  echo "or"
+  echo "`basename $0` deconvolved_mrc normalized_hdf5"
   exit 0
 fi
 
 
-# Call the script in the path where are the inputs.
-hdf_norm_file=$1
+
+if [ $# == 1 ]; then
+  # Call the script in the path where are the inputs.
+  hdf_norm_file=$1
+  # From hdf5 to mrc
+  norm_tree_hdf5='TomoNormalized/TomoNormalized@'${hdf_norm_file}
+  mrc_file=${hdf_norm_file%.hdf5}.mrc
+  scipion xmipp_image_convert -i $norm_tree_hdf5 -o $mrc_file
+  sleep 2
+elif [ $# == 2 ]; then
+  mrc_file=$1
+  hdf_norm_file=$2
+else
+  echo "Wrong number of parameters"
+fi
+
+echo "Number of arguments: $#"
 
 extract_angle $hdf_norm_file
+sleep 1
 rawtlt_file="angles.tlt"
-
-echo $hdf_norm_file
-echo $rawtlt_file
-
-# From hdf5 to mrc
-norm_tree_hdf5='TomoNormalized/TomoNormalized@'${hdf_norm_file}
-mrc_file=${hdf_norm_file%.hdf5}.mrc
-scipion xmipp_image_convert -i $norm_tree_hdf5 -o $mrc_file
-sleep 2
 
 #mrc_file=20170923_tomo45_Single.mrc
 #rawtlt_file=20170923_tomo45_Single_deconv_k_0.03_zsize_3.rawtlt
