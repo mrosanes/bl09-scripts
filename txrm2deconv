@@ -8,13 +8,13 @@ if [ "$1" == "-h" ] ; then
   echo "txrm2deconv: from txrm to deconvoluted tomos. Input arguments:"
   echo "       - a TXRM tomo file"
   echo "       - a TXRM FF file"
-  echo "       - ZP as second argument (default: 25)"
-  echo "       - Energy as third argument (default: 520)"
-  echo "       - Date as fourth argument (default: 20170926)"
-  echo "       - DX as fifth argument (default: 12)"
-  echo "       - KW as sixth argument (default: 0.02)"
-  echo "       - ZSize as seventh argument (default: 20)"
-  echo "       - PSF_DIR as eighth argument (default: /beamlines/bl09/controls/user_resources/psf_directory)"
+  echo "       - ZP as third argument (default: 25)"
+  echo "       - Energy as fourth argument (default: 520)"
+  echo "       - Date as fifth argument (default: 20170926)"
+  echo "       - DX as sixth argument (default: 12)"
+  echo "       - KW as seventh argument (default: 0.02)"
+  echo "       - ZSize as eighth argument (default: 20)"
+  echo "       - PSF_DIR as ninth argument (default: /beamlines/bl09/controls/user_resources/psf_directory)"
   exit 0
 fi
 
