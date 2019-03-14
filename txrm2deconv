@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+
+# parameters
+TXRM_TOMO=$1
+TXRM_FF=$2
+
+if [ "$1" == "-h" ] ; then
+  echo "txrm2deconv: from txrm to deconvoluted tomos. Input arguments:"
+  echo "       - a TXRM tomo file"
+  echo "       - a TXRM FF file"
+  echo "       - ZP as second argument (default: 25)"
+  echo "       - Energy as third argument (default: 520)"
+  echo "       - Date as fourth argument (default: 20170926)"
+  echo "       - DX as fifth argument (default: 12)"
+  echo "       - KW as sixth argument (default: 0.02)"
+  echo "       - ZSize as seventh argument (default: 20)"
+  echo "       - PSF_DIR as eighth argument (default: /beamlines/bl09/controls/user_resources/psf_directory)"
+  exit 0
+fi
+
+if [ $# -lt 2 ]
+  then
+    echo "Not enough arguments supplied"
+    echo "Execute txrm2deconv -h to show the help "
+    exit -1
+fi
+
+if [ -z "$3" ]; then
+    ZP_DR=25
+else
+    ZP_DR=$3
+fi
+
+if [ -z "$4" ]; then
+    ENERGY=520
+else
+    ENERGY=$4
+fi
+
+if [ -z "$5" ]; then
+    DATE=20170926
+else
+    DATE=$5
+fi
+
+if [ -z "$6" ]; then
+    DX=12
+else
+    DX=$6
+fi
+
+if [ -z "$7" ]; then
+    KW=0.02
+else
+    KW=$7
+fi
+
+if [ -z "$8" ]; then
+    ZSIZE=20
+else
+    ZSIZE=$8
+fi
+
+if [ -z "$9" ]; then
+    PSF_DIR="/beamlines/bl09/controls/user_resources/psf_directory"
+else
+    PSF_DIR=$9
+fi
+
+echo "txrm2deconv:"
+# get filename without extension
+FILE_NAME=$(basename "$TXRM_TOMO")
+FILE_NAME="${FILE_NAME%.*}"
+
+# txrm2nexus
+echo "txrm2norm $TXRM_TOMO $TXRM_FF" 
+txrm2norm $TXRM_TOMO $TXRM_FF
+
+echo "DECONVOLUTION:"
+normfile=${FILE_NAME}_norm.hdf5
+echo "tomo_deconv_wiener ${ZP_DR} ${ENERGY} ${DATE} ${normfile} ${DX} ${KW} ${ZSIZE} ${PSF_DIR}"
+tomo_deconv_wiener ${ZP_DR} ${ENERGY} ${DATE} ${normfile} ${DX} ${KW} ${ZSIZE} ${PSF_DIR}
+
