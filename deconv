@@ -75,7 +75,7 @@ cp $1/*_FS.hdf5 stacks_fused
 
 cd stacks_fused
 
-fusion_files=($(find -name '*_FS.hdf5'))
+fusion_files=($(find -name '*_stack.hdf5' -o -name '*_FS.hdf5'))
 for filename in "${fusion_files[@]}"; do
     echo "DECONVOLUTION:-----"
     echo $filename
