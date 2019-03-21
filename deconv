@@ -70,9 +70,9 @@ else
 fi
 
 
-mkdir stacks_fused
+mkdir -p stacks_fused
+cp $1/*_stack.hdf5 stacks_fused
 cp $1/*_FS.hdf5 stacks_fused
-
 cd stacks_fused
 
 fusion_files=($(find -name '*_stack.hdf5' -o -name '*_FS.hdf5'))
