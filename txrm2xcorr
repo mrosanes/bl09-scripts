@@ -67,7 +67,7 @@ else
     PSF_DIR=$9
 fi
 
-echo "txrm2deconv:"
+echo "txrm2xcorr:"
 # get filename without extension
 FILE_NAME=$(basename "$TXRM_TOMO")
 FILE_NAME="${FILE_NAME%.*}"
@@ -85,7 +85,7 @@ tomo_deconv_wiener ${ZP_DR} ${ENERGY} ${DATE} ${normfile} ${DX} ${KW} ${ZSIZE} $
 # From deconvoluted file, to aligned file, using imod tiltxcorr (fiducials required)
 echo "ALIGNMENT USING TILTXCORR:"
 norm="${normfile%.*}"
-deconv_file_mrc="$(find $norm*deconv*zsize*.mrc)"
+deconv_file_mrc="$(find $norm*deconv*.mrc)"
 echo "ctalignxcorr $deconv_file_mrc $normfile"
 ctalignxcorr $deconv_file_mrc $normfile
 
