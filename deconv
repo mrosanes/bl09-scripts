@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [ "$HOSTNAME" == "pcbl0906" ]; then
-  echo "Executing deconvmany in pcbl0906"
+  echo "Executing deconv in pcbl0906"
   echo "Exporting MATLAB RunTime for pcbl0906"
   export LD_LIBRARY_PATH=/usr/local/MATLAB/MATLAB_Runtime/v90/runtime/glnxa64:/usr/local/MATLAB/MATLAB_Runtime/v90/bin/glnxa64:$LD_LIBRARY_PATH
 fi
@@ -69,14 +69,23 @@ else
     PSF_DIR=$8
 fi
 
+# If fused stacks exist, then only work on fused stacks;
+# If fused stacks do not exist, only work with single tomo stacks.
+mkdir -p stacks_folder
+fs_or_stack_files=$(ls $1/*_FS.hdf5)
+echo $fs_or_stack_files
+if [ -z "$fs_or_stack_files" ]; then
+    cp $1/*_stack.hdf5 stacks_folder
+    cd stacks_folder
+    stack_files=($(find -name '*_stack.hdf5'))
+else
+    cp $1/*_FS.hdf5 stacks_folder
+    cd stacks_folder
+    stack_files=($(find -name '*_FS.hdf5'))
+fi
 
-mkdir -p stacks_fused
-cp $1/*_stack.hdf5 stacks_fused
-cp $1/*_FS.hdf5 stacks_fused
-cd stacks_fused
-
-fusion_files=($(find -name '*_stack.hdf5' -o -name '*_FS.hdf5'))
-for filename in "${fusion_files[@]}"; do
+echo ${stack_files[@]}
+for filename in "${stack_files[@]}"; do
     echo "DECONVOLUTION:-----"
     echo $filename
     echo "tomo_deconv_wiener ${ZP_DR} ${ENERGY} ${DATE} ${filename} ${DX} ${KW} ${ZSIZE} ${PSF_DIR}"
