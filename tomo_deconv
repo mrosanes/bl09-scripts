@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [ "$HOSTNAME" == "pcbl0906" ]; then
-  echo "Executing deconvmany in pcbl0906"
+  echo "Executing tomo_deconv in pcbl0906"
   echo "Exporting MATLAB RunTime for pcbl0906"
   export LD_LIBRARY_PATH=/usr/local/MATLAB/MATLAB_Runtime/v90/runtime/glnxa64:/usr/local/MATLAB/MATLAB_Runtime/v90/bin/glnxa64:$LD_LIBRARY_PATH
 fi
