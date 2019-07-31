@@ -23,8 +23,8 @@ mkdir -p $hdfoutdir
 COUNTER=0
 
 ## If images begins at 1
-#COUNTER=1
-#let numimg=numimg+1
+COUNTER=1
+let numimg=numimg+1
 ## If images begins at 1
 
 while [ $COUNTER -lt $numimg ]; do
