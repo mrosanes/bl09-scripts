@@ -20,7 +20,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import nxs
+import h5py
 import argparse
 import struct
 import numpy as np
@@ -39,10 +39,11 @@ def readMRC(inputfile, treehdf):
     #HEADER of MRC file is 1024 bytes.
 
     treehdf_parsed = treehdf.split("/") 
-    tomo = nxs.NXentry(name= treehdf_parsed[0])
     outputfilehdf5 = inputfile.rsplit('.', 1)[0] + '.hdf5'
-    tomo.save(outputfilehdf5, 'w5')
-
+    
+    h5_outfile = h5py.File(outputfilehdf5, 'w')
+    tomo = h5_outfile.create_group(treehdf_parsed[0])
+    
     # We try for little-endian data
     f = open(inputfile, 'rb')
     if f<0:
@@ -66,14 +67,12 @@ def readMRC(inputfile, treehdf):
     print(numslices)
     mode = data_header[3] #The mode is the format of data present in the mrc.
 
-
-    tomo[treehdf_parsed[1]] = nxs.NXfield(
-                    name=treehdf_parsed[1], dtype='float32' , 
-                    shape=[nxs.UNLIMITED, numrows, numcols])
-    tomo[treehdf_parsed[1]].attrs['Number of Frames'] = numslices
-    tomo[treehdf_parsed[1]].attrs['Number of Rows'] = numrows
-    tomo[treehdf_parsed[1]].attrs['Number of Columns'] = numcols
-    tomo[treehdf_parsed[1]].write()
+    dataset = treehdf_parsed[1]
+    tomo.create_dataset(dataset, shape=(numslices, numrows, numcols),
+                        chunks=(1, numrows, numcols), dtype='float32')
+    tomo[dataset].attrs['Number of Frames'] = numslices
+    tomo[dataset].attrs['Number of Rows'] = numrows
+    tomo[dataset].attrs['Number of Columns'] = numcols
 
     # rest_header = 1024 - 40
     # The rest of the header does not interest us.
@@ -93,11 +92,10 @@ def readMRC(inputfile, treehdf):
         format = '<' + str(single_img_size) + 'f'
         data_img =  struct.unpack(format, pixels_bytes)
         img_slice = np.reshape(data_img, (1, numrows, numcols))
-        slab_offset = [numimg, 0, 0]
-        tomo[treehdf_parsed[1]].put(img_slice, slab_offset, refresh=False)
-        tomo[treehdf_parsed[1]].write()
+        tomo[dataset][numimg] = img_slice
       
     f.close()
+    h5_outfile.close()
 
 
 if __name__ == "__main__":
