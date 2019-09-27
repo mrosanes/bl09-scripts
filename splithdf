@@ -119,8 +119,10 @@ def splitHdf(inputfile, imagejhdffile):
             energies[numimg] = (energies[numimg+1] + energies[numimg-1]) / 2
             
         # Create output file
-        hdf5_output_filename = (inputfile.split('.hdf')[0] +  
-                        '_' + str(round(energies[numimg],3))+'_eV'  + '.hdf5')
+        hdf5_output_filename = (inputfile.split('.hdf')[0] + '_' 
+                                + str.format("{0:.3f}", 
+                                             round(energies[numimg],3)) 
+                                + '_eV'  + '.hdf5')
 
         single_image_hdf5 = nxs.NXentry(name= "FastAligned")
         single_image_hdf5.save(hdf5_output_filename, 'w5')
@@ -171,7 +173,7 @@ def splitHdf(inputfile, imagejhdffile):
             single_image_hdf5["image"].attrs['Number of Frames'] = nFrames
             single_image_hdf5["image"].attrs['Pixel Rows'] = numrows    
             single_image_hdf5["image"].attrs['Pixel Columns'] = numcols
-            single_image_hdf5["image"].write()    
+            single_image_hdf5["image"].write()
 
         except Exception as e:
             print("AN ERROR OCCURRED DURING THE CONVERSION")
