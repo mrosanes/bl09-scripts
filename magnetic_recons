@@ -59,20 +59,22 @@ parser.register('type', 'bool', str2bool)
 # Arguments for deconvolution
 parser.add_argument('-xp', '--xpfile', type=str, default=xp_file,
                     help="x positive circular polarization projections stack\n"
-                          + " (default: simulated heterostructure xn file)")
+                         + "(default: simulated heterostructure xp file)")
 parser.add_argument('-xn', '--xnfile', type=str, default=xn_file,
                     help="x negative circular polarization projections stack\n"
-                          + " (default: simulated heterostructure xp file)")
+                         + "(default: simulated heterostructure xn file)")
 parser.add_argument('-xa', '--xangles', type=str, default=x_angles,
-                    help="tilt angles for x stack")
+                    help="tilt angles for x stack\n"
+                         + "(default: x tilt angles file)")
 parser.add_argument('-yp', '--ypfile', type=str, default=yp_file,
                     help="y positive circular polarization projections stack\n"
-                          + " (default: simulated heterostructure xn file)")
+                         + "(default: simulated heterostructure yp file)")
 parser.add_argument('-yn', '--ynfile', type=str, default=yn_file,
                     help="y negative circular polarization projections stack\n"
-                          + " (default: simulated heterostructure xn file)")                       
+                         + "(default: simulated heterostructure yn file)")                       
 parser.add_argument('-ya', '--yangles', type=str, default=y_angles,
-                    help="tilt angles for x stack")
+                    help="tilt angles for y stack\n"
+                         + "(default: y tilt angles file)")
 parser.add_argument('-i', '--iterations', type=int, default=3, 
                     help='Iterations for the SIRT reconstruction')
 # Default shall be False in order to work with BL09-Mistral TXM Data
