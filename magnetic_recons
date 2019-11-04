@@ -56,6 +56,11 @@ parser = argparse.ArgumentParser(description=description,
                                  formatter_class=RawTextHelpFormatter)
 parser.register('type', 'bool', str2bool)
 
+# 1. Real sample, 2 difference stacks, vertical parallel rotation axes, 
+#    it is the real sample the one rotated of 90degrees in the Microscope.
+# 2. Simulated sample, 4 stacks, rotation axes turned 90degrees one from the  
+#    other.
+
 # Input the difference x_diff stack
 parser.add_argument(
     '-xd', '--x-diff-file', type=str, default=None,
@@ -92,24 +97,42 @@ parser.add_argument(
     '-ya', '--yangles', type=str, default=y_angles,
     help="1&2. Tilt angles for Y stack/s\n"
     + "(default: Y tilt angles file)")
+# Dataset tree path
+parser.add_argument(
+    '-d', '--dataset', type=str, default='Tomo/data',
+    help='1&2. Dataset Path in input files (default=Tomo/data)')
 # SIRT iterations                         
 parser.add_argument(
     '-i', '--iterations', type=int, default=3, 
     help="1&2. Iterations for the SIRT reconstruction\n"
-    + "(default: 3)")
+          + "(default: 3)")
 # Default shall be False in order to work with BL09-Mistral TXM Data
 # as the axis of rotation in TXM is always the axis Y.
 # For tests with stacks which images are already rotated of 90degrees, 
 # transpose the images (-t=True).
 parser.add_argument(
-    '-t', '--transpose', type='bool', default='False',
-    help='2. Alignment of projections along'
-    + ' the stack (default=False)')
+    '-t', '--transpose', type="bool", default="False",
+    help="2. Alignment of projections along the TXM axis\n"
+         + "(default=False)")
+# Subsampling level (losing resolution but reducing processing time)                      
+parser.add_argument(
+    '-s', '--sublevel', type=int, default=0, 
+    help="1&2. Subsampling level(default: 0)")
 
 args = parser.parse_args()
 start_time = time.time()
 
-ds = 'NXtomo/data/data'
+ds = args.dataset
+subsampling_level = args.sublevel
+
+########## 
+ds = 'NXtomo/data/data' # (to be removed after tests with Aurelio)
+subsampling_level = 3 # (to be removed after tests with Aurelio)
+##########
+
+print("Projections Dataset inside the hdf5 input files:")
+print(ds)
+
 if args.x_diff_file and args.y_diff_file:
     print("\nReading input stacks")
     prj1 = dxchange.read_hdf5(args.x_diff_file, dataset=ds).astype('float32')
@@ -154,13 +177,19 @@ x_ang = -np.array(np.pi/2.+x_ang, dtype='float32')
 y_ang = np.loadtxt(args.yangles)
 y_ang = np.pi/180. * y_ang
 y_ang = -np.array(np.pi/2.+y_ang, dtype='float32')
-    
-print("\nDownsample: useful to diminish processing time"
-      + " at the cost of losing reconstruction resolution")
-prj1 = tomopy.downsample(prj1, level=3, axis=2).copy()
-prj1 = tomopy.downsample(prj1, level=3, axis=1).copy()
-prj2 = tomopy.downsample(prj2, level=3, axis=2).copy()
-prj2 = tomopy.downsample(prj2, level=3, axis=1).copy()
+
+if subsampling_level != 0:
+    print("\nDownsample: useful to diminish processing time"
+        + " at the cost of losing reconstruction resolution")
+    prj1 = tomopy.downsample(prj1, level=subsampling_level, axis=2).copy()
+    prj1 = tomopy.downsample(prj1, level=subsampling_level, axis=1).copy()
+    prj2 = tomopy.downsample(prj2, level=subsampling_level, axis=2).copy()
+    prj2 = tomopy.downsample(prj2, level=subsampling_level, axis=1).copy()
+
+# Turn image needed by tompopy for real samples (unintuitive)
+a = prj2[:, ::-1]
+prj2 = a
+####
 
 # Verfify shapes after downsampling
 print("\nShape of input stacks")
@@ -170,10 +199,13 @@ print(np.shape(prj2))
 ####################
 # Reconstruction
 print("\nReconstructing...")
-rec1, rec2, rec3 = tomopy.vector2(prj1, prj2, x_ang, y_ang, 
+rec1, rec2, rec3 = tomopy.vector2(prj1, prj2, x_ang, y_ang,
                                   axis1=1, axis2=2, num_iter=args.iterations)
-#rec1, rec2, rec3 = tomopy.vector2(prj1, prj2, ang, ang, 
+#rec1, rec2, rec3 = tomopy.vector2(prj1, prj2, ang, ang,
 #                                  axis1=1, axis2=2, num_iter=100)
+#rec1, rec2, rec3 = tomopy.vector2(prj1, prj2, x_ang, y_ang, 
+#                                  center1=20, center2=20,
+#                                  axis1=1, axis2=2, num_iter=args.iterations)
 print("\nReconstruction has been finished")
 ####################
 
