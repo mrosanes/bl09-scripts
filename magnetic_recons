@@ -186,10 +186,14 @@ if subsampling_level != 0:
     prj2 = tomopy.downsample(prj2, level=subsampling_level, axis=2).copy()
     prj2 = tomopy.downsample(prj2, level=subsampling_level, axis=1).copy()
 
-# Turn image needed by tompopy for real samples (unintuitive)
-a = prj2[:, ::-1]
-prj2 = a
-####
+# Mirror second projections stack needed by tompopy for real samples
+# (unintuitive, but necessary if using tomopy a it is as of today: 04/11/2019).
+# Both stacks  (with sample placed in TXM at approx 90degrees), shall be
+# input in tomopy following the same axis direction (e.g. vertical axis);
+# and the second stack shall be mirrored (regarding also the vertical axis).
+if args.x_diff_file and args.y_diff_file:
+    a = prj2[:, ::-1]
+    prj2 = a
 
 # Verfify shapes after downsampling
 print("\nShape of input stacks")
