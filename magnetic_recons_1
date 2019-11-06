@@ -1,0 +1,234 @@
+#!/usr/bin/env python
+##/homelocal/opbl09/miniconda2/bin/python
+
+## Use 'conda activate' from the command line, before calling this script
+
+"""
+(C) Copyright 2019 Marc Rosanes - ALBA Synchrotron
+The program is distributed under the terms of the 
+GNU General Public License (or the Lesser GPL).
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
+
+import os
+import time
+import datetime 
+import argparse
+from argparse import RawTextHelpFormatter
+import numpy as np
+
+import tomopy
+import dxchange
+import matplotlib.pyplot as plt
+
+
+def str2bool(v):
+    return v.lower() in ("yes", "true", "t", "1")
+
+              
+xp_file = ("/beamlines/bl09/controls/sferrer/MAGNETISM_DATA/" +
+          "phantom_00013_heterostructure/Xt_dPos_m90-901deg_Tomo.hdf5")
+xn_file = ("/beamlines/bl09/controls/sferrer/MAGNETISM_DATA/" +
+          "phantom_00013_heterostructure/Xt_dNeg_m90-901deg_Tomo.hdf5")     
+x_angles = ("/beamlines/bl09/controls/sferrer/MAGNETISM_DATA/" +
+              "phantom_00013_heterostructure/FP_m90-90_1deg.txt")
+yp_file = ("/beamlines/bl09/controls/sferrer/MAGNETISM_DATA/" +
+          "phantom_00013_heterostructure/Yt_dPos_m90-901deg_Tomo.hdf5")
+yn_file = ("/beamlines/bl09/controls/sferrer/MAGNETISM_DATA/" +
+          "phantom_00013_heterostructure/Yt_dNeg_m90-901deg_Tomo.hdf5") 
+y_angles = ("/beamlines/bl09/controls/sferrer/MAGNETISM_DATA/" +
+              "phantom_00013_heterostructure/FP_m90-90_1deg.txt")
+
+description = ("Magnetic reconstruction using Tomopy")
+parser = argparse.ArgumentParser(description=description,
+                                 formatter_class=RawTextHelpFormatter)
+parser.register('type', 'bool', str2bool)
+
+# 1. Real sample, 2 difference stacks, vertical parallel rotation axes, 
+#    it is the real sample the one rotated of 90degrees in the Microscope.
+# 2. Simulated sample, 4 stacks, rotation axes turned 90degrees one from the  
+#    other.
+
+# Input the difference x_diff stack
+parser.add_argument(
+    '-xd', '--x-diff-file', type=str, default=None,
+    help="1. X difference polarization projection stack")
+# Input x_pos and x_neg stacks instead of the difference x_diff stack
+parser.add_argument(
+    '-xp', '--xpfile', type=str, default=xp_file,
+    help="2. X positive circular polarization projections stack\n"
+    + "(default: simulated heterostructure xp file)")
+parser.add_argument(
+    '-xn', '--xnfile', type=str, default=xn_file,
+    help="2. X negative circular polarization projections stack\n"
+    + "(default: simulated heterostructure xn file)")
+# x angles
+parser.add_argument(
+    '-xa', '--xangles', type=str, default=x_angles,
+    help="1&2. Tilt angles for X stack/s\n"
+    + "(default: X tilt angles file)")
+# Input the difference x_diff stack
+parser.add_argument(
+    '-yd', '--y-diff-file', type=str, default=None,
+    help="1. Y difference polarization projection stack")
+# Input y_pos and y_neg stacks instead of the difference y_diff stack
+parser.add_argument(
+    '-yp', '--ypfile', type=str, default=yp_file,
+    help="2. Y positive circular polarization projections stack\n"
+    + "(default: simulated heterostructure yp file)")
+parser.add_argument(
+    '-yn', '--ynfile', type=str, default=yn_file,
+    help="2. Y negative circular polarization projections stack\n"
+    + "(default: simulated heterostructure yn file)") 
+# y angles
+parser.add_argument(
+    '-ya', '--yangles', type=str, default=y_angles,
+    help="1&2. Tilt angles for Y stack/s\n"
+    + "(default: Y tilt angles file)")
+# Dataset tree path
+parser.add_argument(
+    '-d', '--dataset', type=str, default='Tomo/data',
+    help='1&2. Dataset Path in input files (default=Tomo/data)')
+# SIRT iterations                         
+parser.add_argument(
+    '-i', '--iterations', type=int, default=3, 
+    help="1&2. Iterations for the SIRT reconstruction\n"
+          + "(default: 3)")
+# Default shall be False in order to work with BL09-Mistral TXM Data
+# as the axis of rotation in TXM is always the axis Y.
+# For tests with stacks which images are already rotated of 90degrees, 
+# transpose the images (-t=True).
+parser.add_argument(
+    '-t', '--transpose', type="bool", default="False",
+    help="2. Alignment of projections along the TXM axis\n"
+         + "(default=False)")
+# Subsampling level (losing resolution but reducing processing time)                      
+parser.add_argument(
+    '-s', '--sublevel', type=int, default=0, 
+    help="1&2. Subsampling level\n"
+         + "(default: 0)")
+
+args = parser.parse_args()
+start_time = time.time()
+
+ds = args.dataset
+subsampling_level = args.sublevel
+
+########## 
+ds = "Tomo/data" # 'NXtomo/data/data' # (to be removed after tests with Aurelio)
+subsampling_level = 3 # (to be removed after tests with Aurelio)
+##########
+
+print("Projections Dataset inside the hdf5 input files:")
+print(ds)
+
+if args.x_diff_file and args.y_diff_file:
+    print("\nReading input stacks")
+    prj1 = dxchange.read_hdf5(args.x_diff_file, dataset=ds).astype('float32')
+    #prj2 = dxchange.read_hdf5(args.y_diff_file, dataset=ds).astype('float32')
+else:
+    print("\nReading input stacks")
+    xp = dxchange.read_hdf5(args.xpfile, dataset=ds).astype('float32')
+    xn = dxchange.read_hdf5(args.xnfile, dataset=ds).astype('float32')
+    #yp = dxchange.read_hdf5(args.ypfile, dataset=ds).astype('float32')
+    #yn = dxchange.read_hdf5(args.ynfile, dataset=ds).astype('float32')
+
+    print("\nComputing difference stacks")
+    prj1 = xp-xn                                                                           
+    #prj2 = yp-yn 
+
+    # Transpose one of the stacks in order to rotate it at 90degrees.
+    # We could maybe use openCV to rotate to any arbitrary number.
+
+    # Tomopy wants the two stacks in the same axis: as the TXM will do. 
+    # TODO: If the axis rotated between the two stacks (around Z) of the sample in 
+    # the TXM is less or more of 90degrees, the difference of rotation angle shall 
+    # be added/subtracted to the second stack. Maybe, a rotation of 180degrees
+    # will have to be applied as a  preprocessing in the images; this will depend 
+    # on how we have mounted the sample once rotated in the TXM to acquire the 
+    # second stack.
+
+    # In case of example images, we transpose, because the stacks are already 
+    # rotated by 90degrees. In case of TXM stacks the transposing should not be 
+    # done, as both stacks will be oriented following the same axis; and it is
+    # in this way, that tomopy takes the input stacks in the two different
+    # light polarizations.
+    print("\nTransposing one of the stacks if needed: tomopy requires to input"
+        + " all the stacks following the same rotation axis direction")
+    if args.transpose:
+        for m in range(prj1.shape[0]):                                                         
+            prj1[m] = np.transpose(prj1[m]).copy() 
+
+print("\nReading angles")
+x_ang = np.loadtxt(args.xangles)
+x_ang = np.pi/180. * x_ang
+x_ang = -np.array(np.pi/2.+x_ang, dtype='float32')
+y_ang = np.loadtxt(args.yangles)
+y_ang = np.pi/180. * y_ang
+y_ang = -np.array(np.pi/2.+y_ang, dtype='float32')
+
+if subsampling_level != 0:
+    print("\nDownsample: useful to diminish processing time"
+        + " at the cost of losing reconstruction resolution")
+    prj1 = tomopy.downsample(prj1, level=subsampling_level, axis=2).copy()
+    prj1 = tomopy.downsample(prj1, level=subsampling_level, axis=1).copy()
+    #prj2 = tomopy.downsample(prj2, level=subsampling_level, axis=2).copy()
+    #prj2 = tomopy.downsample(prj2, level=subsampling_level, axis=1).copy()
+
+# Mirror second projections stack needed by tompopy for real samples
+# (unintuitive, but necessary if using tomopy a it is as of today: 04/11/2019).
+# Both stacks  (with sample placed in TXM at approx 90degrees), shall be
+# input in tomopy following the same axis direction (e.g. vertical axis);
+# and the second stack shall be mirrored (regarding also the vertical axis).
+##if args.x_diff_file and args.y_diff_file:
+##    a = prj2[:, ::-1]
+##    prj2 = a
+
+# Verfify shapes after downsampling
+print("\nShape of input stacks")
+print(np.shape(prj1))                                                  
+#print(np.shape(prj2))
+
+####################
+# Reconstruction
+print("\nReconstructing...")
+rec1, rec2 = tomopy.vector(prj1, x_ang, num_iter=args.iterations)
+print("\nReconstruction has been finished")
+####################
+
+# Write into tiff. I found a bug in writting to hdf5 using dxchange, 
+# but probably I can use h5py to store in hdf5.
+time.sleep(2)
+print("\nStoring x,y,z magnetic components reconstructed stacks(tiff format)")
+dxchange.write_tiff(rec1, fname="rec_one_1", overwrite=True)
+dxchange.write_tiff(rec2, fname="rec_one_2", overwrite=True)
+
+# Compute and print total elapsed time
+end_time = time.time()
+elapsed_time = end_time - start_time
+print("\nElapsed time:")
+sec = datetime.timedelta(seconds=elapsed_time)
+print(str(sec))
+
+# """ Showing figures
+fig = plt.figure(figsize=(9, 7))                                       
+ax1 = fig.add_subplot(1, 2, 1)                                         
+ax1.imshow(rec1[28,:,:])                                               
+ax2 = fig.add_subplot(1, 2, 2)                                         
+ax2.imshow(rec2[28,:,:])
+print("\nShowing figures\n")
+plt.show()
+#"""
+
