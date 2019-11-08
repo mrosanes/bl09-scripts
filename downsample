@@ -47,7 +47,7 @@ parser.add_argument(
     help='1&2. Dataset Path in input files (default=Tomo/data)')
 # Subsampling level (losing resolution but reducing processing time)                      
 parser.add_argument(
-    '-s', '--sublevel', type=int, default=1, 
+    '-l', '--level_downsample', type=int, default=1, 
     help="1&2. Subsampling level\n"
          + "(default: 1)")
 # Transpose stacks
@@ -57,12 +57,11 @@ parser.add_argument(
          + "(default: False)")
 
 args = parser.parse_args()
-
 fn_stack = args.fn_stack
 ds = args.dataset
-subsampling_level = args.sublevel
+level_downsample = args.level_downsample
 
-print("Projections Dataset inside the hdf5 input files:")
+print("Dataset to look at for finding projections in input hdf5 files:")
 print(ds)
 
 print("\nReading input stack")
@@ -73,10 +72,10 @@ print("\nShape of input stack")
 print(np.shape(prj))
 
 ##Subsampling input images ##
-if subsampling_level:
+if level_downsample:
     import tomopy
-    prjsub = tomopy.downsample(prj, level=subsampling_level, axis=1).copy()
-    prjsub = tomopy.downsample(prjsub, level=subsampling_level, axis=2).copy()
+    prjsub = tomopy.downsample(prj, level=level_downsample, axis=1).copy()
+    prjsub = tomopy.downsample(prjsub, level=level_downsample, axis=2).copy()
 else:
     prjsub = prj
 ######
